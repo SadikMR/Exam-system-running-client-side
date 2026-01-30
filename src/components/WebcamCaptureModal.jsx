@@ -53,13 +53,6 @@ const WebcamCaptureModal = ({ isOpen, onClose, onComplete }) => {
       icon: "→",
       direction: "right"
     },
-    { 
-      key: "up", 
-      label: "Look UP", 
-      description: "Tilt your head UP",
-      icon: "↑",
-      direction: "up"
-    },
   ];
 
   // Load face-api library and models
@@ -366,14 +359,6 @@ const WebcamCaptureModal = ({ isOpen, onClose, onComplete }) => {
               return;
             }
           } else {
-            // For front and up, be more lenient - capture if face detected for a while
-            if ((angle === "front" || angle === "up") && faceDetectedCount > 10) {
-              // After 10 detections, capture anyway if face is present
-              clearInterval(detectionIntervalRef.current);
-              clearTimeout(timeoutId);
-              resolve();
-              return;
-            }
             correctPositionCount = 0;
           }
 
@@ -441,26 +426,17 @@ const WebcamCaptureModal = ({ isOpen, onClose, onComplete }) => {
     switch (angle) {
       case "front":
         // Face forward: nose should be roughly centered between eyes
-        // Very lenient - accept any forward-facing position
-        // Front means face is looking straight, not necessarily perfectly centered
-        const isCentered = horizontalRatio > 0.3 && horizontalRatio < 0.7; // More lenient
-        const isLevel = Math.abs(verticalRatio) < 0.4; // More lenient for vertical
-        isCorrect = isCentered && isLevel;
+        // Very lenient - just need face looking forward, no specific vertical position
+        const isCentered = horizontalRatio > 0.25 && horizontalRatio < 0.75; // Very lenient
+        isCorrect = isCentered; // No vertical requirement for front
         
-        // If face is detected and roughly forward, accept it
         if (!isCorrect) {
-          if (horizontalRatio < 0.3) {
+          if (horizontalRatio < 0.25) {
             feedback = "→ Turn your head slightly RIGHT";
-          } else if (horizontalRatio > 0.7) {
+          } else if (horizontalRatio > 0.75) {
             feedback = "← Turn your head slightly LEFT";
-          } else if (Math.abs(verticalRatio) > 0.4) {
-            if (verticalRatio > 0.4) {
-              feedback = "↑ Look UP slightly";
-            } else {
-              feedback = "↓ Look DOWN slightly";
-            }
           } else {
-            // Close enough, accept it
+            // Face is detected and forward, accept it
             isCorrect = true;
             feedback = "✓ Face forward";
           }
@@ -471,12 +447,12 @@ const WebcamCaptureModal = ({ isOpen, onClose, onComplete }) => {
 
       case "left":
         // Head turned LEFT: nose should be shifted right (higher ratio)
-        // Stricter threshold for accurate left turn
-        isCorrect = horizontalRatio > 0.6;
+        // Balanced threshold - requires clear left turn
+        isCorrect = horizontalRatio > 0.58;
         if (!isCorrect) {
-          if (horizontalRatio < 0.4) {
+          if (horizontalRatio < 0.42) {
             feedback = "→ Turn your head MORE to the LEFT";
-          } else if (horizontalRatio < 0.5) {
+          } else if (horizontalRatio < 0.52) {
             feedback = "→ Turn your head to the LEFT";
           } else {
             feedback = "→ Turn your head a bit MORE to the LEFT";
@@ -488,46 +464,18 @@ const WebcamCaptureModal = ({ isOpen, onClose, onComplete }) => {
 
       case "right":
         // Head turned RIGHT: nose should be shifted left (lower ratio)
-        // Stricter threshold for accurate right turn
-        isCorrect = horizontalRatio < 0.4;
+        // More lenient threshold - easier to trigger
+        isCorrect = horizontalRatio < 0.48;
         if (!isCorrect) {
-          if (horizontalRatio > 0.6) {
+          if (horizontalRatio > 0.60) {
             feedback = "← Turn your head MORE to the RIGHT";
-          } else if (horizontalRatio > 0.5) {
+          } else if (horizontalRatio > 0.52) {
             feedback = "← Turn your head to the RIGHT";
           } else {
             feedback = "← Turn your head a bit MORE to the RIGHT";
           }
         } else {
           feedback = "✓ Perfect! Head turned right";
-        }
-        break;
-
-      case "up":
-        // Head tilted UP: nose should be above eye level (negative verticalRatio)
-        // More lenient - accept if nose is above or at eye level
-        // verticalRatio is (nose.y - eyeCenterY) / eyeDistance
-        // Negative means nose is above eyes (good for up)
-        // Positive means nose is below eyes (bad for up)
-        isCorrect = verticalRatio < 0; // Any upward tilt is acceptable
-        
-        if (!isCorrect) {
-          if (verticalRatio > 0.2) {
-            feedback = "↑ Tilt your head UP more";
-          } else if (verticalRatio > 0) {
-            feedback = "↑ Tilt your head UP";
-          } else {
-            // Very close, accept it
-            isCorrect = true;
-            feedback = "✓ Head tilted up";
-          }
-        } else {
-          // If already correct, check if it's a good tilt
-          if (verticalRatio < -0.15) {
-            feedback = "✓ Perfect! Head tilted up";
-          } else {
-            feedback = "✓ Head tilted up";
-          }
         }
         break;
 
@@ -540,12 +488,11 @@ const WebcamCaptureModal = ({ isOpen, onClose, onComplete }) => {
     return isCorrect;
   };
 
-  // Draw face detection visualization
+  // Simplified face detection without oval visualization
   useEffect(() => {
-    const drawFaceOval = async () => {
+    const detectFace = async () => {
       if (
         !videoRef.current ||
-        !faceCanvasRef.current ||
         !window.faceapi ||
         !cameraAccessGranted ||
         !modelsLoaded
@@ -558,126 +505,25 @@ const WebcamCaptureModal = ({ isOpen, onClose, onComplete }) => {
           .detectAllFaces(
             videoRef.current,
             new window.faceapi.TinyFaceDetectorOptions({
-              inputSize: 416, // Increased for better detection
-              scoreThreshold: 0.3, // Lower threshold for better detection
+              inputSize: 416,
+              scoreThreshold: 0.3,
             })
           )
           .withFaceLandmarks();
 
-        const ctx = faceCanvasRef.current.getContext("2d");
-        const video = videoRef.current;
-
-        // Clear canvas
-        ctx.clearRect(
-          0,
-          0,
-          faceCanvasRef.current.width,
-          faceCanvasRef.current.height
-        );
-
-        // Set canvas size to match video
-        faceCanvasRef.current.width = video.videoWidth;
-        faceCanvasRef.current.height = video.videoHeight;
-
-        if (detections.length > 0) {
-          const detection = detections[0];
-          const landmarks = detection.landmarks.positions || detection.landmarks;
-
-          // Draw face oval (vertical - taller than wide, like a human face)
-          // Get key facial points for better oval calculation
-          const chin = landmarks[8] || landmarks[7]; // Chin point
-          const forehead = landmarks[27] || landmarks[21]; // Forehead point
-          const leftCheek = landmarks[0]; // Left face edge
-          const rightCheek = landmarks[16]; // Right face edge
-
-          // Calculate face dimensions from key points
-          const faceWidth = Math.abs(rightCheek.x - leftCheek.x);
-          const faceHeight = Math.abs(forehead.y - chin.y);
-
-          // Center of face
-          const centerX = (leftCheek.x + rightCheek.x) / 2;
-          const centerY = (forehead.y + chin.y) / 2;
-
-          // Make oval vertical: height should be 1.4x the width (natural face ratio)
-          // Add padding for better visual fit
-          const paddingX = faceWidth * 0.15; // 15% horizontal padding
-          const paddingY = faceHeight * 0.2; // 20% vertical padding
-          
-          // Vertical oval: radiusX (horizontal) is smaller, radiusY (vertical) is larger
-          const radiusX = (faceWidth / 2) + paddingX; // Horizontal radius (narrower)
-          const radiusY = (faceHeight / 2) + paddingY; // Vertical radius (taller)
-          
-          // Ensure oval is vertical (height > width)
-          const finalRadiusX = Math.min(radiusX, radiusY * 0.75); // Max 75% of height
-          const finalRadiusY = Math.max(radiusY, radiusX * 1.4); // At least 140% of width
-
-          // Draw oval border
-          ctx.strokeStyle = faceDetected ? "#10B981" : "#EF4444";
-          ctx.lineWidth = 3;
-          ctx.beginPath();
-          ctx.ellipse(centerX, centerY, finalRadiusX, finalRadiusY, 0, 0, Math.PI * 2);
-          ctx.stroke();
-          
-          // Update face detected state
-          setFaceDetected(true);
-
-          // Draw direction indicator
-          if (headPosition?.isCorrect) {
-            ctx.fillStyle = "rgba(16, 185, 129, 0.3)";
-            ctx.fill();
-          }
-          
-          // Draw direction arrow if not in correct position
-          if (!headPosition?.isCorrect && isAutoCapturing && currentAngleIndex < angles.length) {
-            const currentAngle = angles[currentAngleIndex];
-            ctx.strokeStyle = "#FFD700"; // Gold color for arrows
-            ctx.fillStyle = "#FFD700";
-            ctx.lineWidth = 4;
-            ctx.font = "bold 50px Arial";
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            
-            const arrowX = centerX;
-            const arrowY = centerY - finalRadiusY - 40;
-            
-            switch (currentAngle.key) {
-              case "left":
-                ctx.fillText("←", arrowX - 40, arrowY);
-                break;
-              case "right":
-                ctx.fillText("→", arrowX + 40, arrowY);
-                break;
-              case "up":
-                ctx.fillText("↑", arrowX, arrowY - 30);
-                break;
-              case "front":
-                // Draw center indicator (crosshair)
-                ctx.strokeStyle = "#10B981";
-                ctx.lineWidth = 3;
-                ctx.beginPath();
-                ctx.moveTo(arrowX - 25, arrowY);
-                ctx.lineTo(arrowX + 25, arrowY);
-                ctx.moveTo(arrowX, arrowY - 25);
-                ctx.lineTo(arrowX, arrowY + 25);
-                ctx.stroke();
-                break;
-            }
-          }
-        } else {
-          setFaceDetected(false);
-        }
+        setFaceDetected(detections.length > 0);
       } catch (error) {
-        console.error("Face drawing error:", error);
+        console.error("Face detection error:", error);
         setFaceDetected(false);
       }
 
-      requestAnimationFrame(drawFaceOval);
+      requestAnimationFrame(detectFace);
     };
 
     if (cameraAccessGranted && modelsLoaded) {
-      drawFaceOval();
+      detectFace();
     }
-  }, [cameraAccessGranted, faceDetected, headPosition, modelsLoaded, isAutoCapturing, currentAngleIndex]);
+  }, [cameraAccessGranted, modelsLoaded]);
 
   const handleClose = () => {
     stopCamera();
@@ -713,7 +559,7 @@ const WebcamCaptureModal = ({ isOpen, onClose, onComplete }) => {
               Exam Verification
             </h2>
             <p className="text-sm text-gray-600 mt-1">
-              Capture your face from four angles for monitoring
+              Capture your face from three angles for monitoring
             </p>
           </div>
           <button onClick={handleClose} className="btn btn-circle btn-ghost">
@@ -765,10 +611,7 @@ const WebcamCaptureModal = ({ isOpen, onClose, onComplete }) => {
               muted
               className="w-full h-full object-cover"
             />
-            <canvas
-              ref={faceCanvasRef}
-              className="absolute inset-0 w-full h-full"
-            />
+
             {/* Hidden canvas for image capture */}
             <canvas
               ref={canvasRef}
@@ -848,7 +691,7 @@ const WebcamCaptureModal = ({ isOpen, onClose, onComplete }) => {
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <h3 className="font-semibold text-blue-900 mb-2">Instructions:</h3>
             <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
-              <li>Position your face within the oval border</li>
+              <li>Ensure your face is clearly visible in the camera</li>
               <li>Follow the on-screen instructions for head movements</li>
               <li>Keep good lighting and clear view of your face</li>
               <li>

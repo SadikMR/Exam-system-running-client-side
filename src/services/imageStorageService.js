@@ -26,7 +26,7 @@ const getAuthToken = () => {
 
 /**
  * Submit captured images to the server and mark user as verified
- * @param {Object} images - Captured images (front, left, right, up)
+ * @param {Object} images - Captured images (front, left, right)
  * @returns {Promise} Result with success status and verification data
  */
 export const submitVerificationImages = async (images) => {
@@ -40,8 +40,8 @@ export const submitVerificationImages = async (images) => {
       throw new Error("No authentication token found. Please login again.");
     }
 
-    // Add images with proper field names (front, left, right, up)
-    const angles = ["front", "left", "right", "up"];
+    // Add images with proper field names (front, left, right)
+    const angles = ["front", "left", "right"];
     let imageCount = 0;
 
     angles.forEach((angle) => {
@@ -56,9 +56,9 @@ export const submitVerificationImages = async (images) => {
     });
 
     // Validate all images are present
-    if (imageCount !== 4) {
+    if (imageCount !== 3) {
       throw new Error(
-        `Missing images. Expected 4 images, got ${imageCount}. Please capture all angles.`
+        `Missing images. Expected 3 images, got ${imageCount}. Please capture all angles.`
       );
     }
 

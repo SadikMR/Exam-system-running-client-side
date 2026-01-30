@@ -16,7 +16,6 @@ export const useWebcamCapture = () => {
     front: null,
     left: null,
     right: null,
-    up: null,
   });
   const [currentAngle, setCurrentAngle] = useState(null);
   const [isCapturing, setIsCapturing] = useState(false);
@@ -135,7 +134,7 @@ export const useWebcamCapture = () => {
 
   /**
    * Capture image from video stream with compression
-   * @param {string} angle - The angle being captured (front, left, right, up)
+   * @param {string} angle - The angle being captured (front, left, right)
    * @returns {Promise} Resolves with captured image data
    */
   const captureImage = useCallback(
@@ -249,11 +248,11 @@ export const useWebcamCapture = () => {
   );
 
   /**
-   * Capture all four angles sequentially
+   * Capture all three angles sequentially
    * @returns {Promise} Resolves when all images are captured
    */
   const captureAllAngles = useCallback(async () => {
-    const angles = ["front", "left", "right", "up"];
+    const angles = ["front", "left", "right"];
     const results = {};
 
     for (const angle of angles) {
@@ -306,7 +305,6 @@ export const useWebcamCapture = () => {
         front: null,
         left: null,
         right: null,
-        up: null,
       };
     });
   }, []);
@@ -356,7 +354,7 @@ export const useWebcamCapture = () => {
    * @returns {Object} Progress information
    */
   const getCaptureProgress = useCallback(() => {
-    const total = 4;
+    const total = 3;
     const captured = Object.values(capturedImages).filter(
       (img) => img !== null
     ).length;

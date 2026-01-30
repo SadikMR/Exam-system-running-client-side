@@ -32,18 +32,17 @@ router.post(
     { name: "front", maxCount: 1 },
     { name: "left", maxCount: 1 },
     { name: "right", maxCount: 1 },
-    { name: "up", maxCount: 1 },
   ]),
   async (req, res) => {
     try {
       const userId = req.user.id || req.user._id; // Adjust based on your auth middleware
       const { email } = req.body;
 
-      // Validate all 4 images are present
-      if (!req.files?.front || !req.files?.left || !req.files?.right || !req.files?.up) {
+      // Validate all 3 images are present
+      if (!req.files?.front || !req.files?.left || !req.files?.right) {
         return res.status(400).json({
           success: false,
-          message: "All 4 verification images are required (front, left, right, up)",
+          message: "All 3 verification images are required (front, left, right)",
         });
       }
 
@@ -52,17 +51,15 @@ router.post(
         uploadToCloudinary(req.files.front[0].buffer, `verification/${userId}/front`),
         uploadToCloudinary(req.files.left[0].buffer, `verification/${userId}/left`),
         uploadToCloudinary(req.files.right[0].buffer, `verification/${userId}/right`),
-        uploadToCloudinary(req.files.up[0].buffer, `verification/${userId}/up`),
       ];
 
-      const [frontUrl, leftUrl, rightUrl, upUrl] = await Promise.all(uploadPromises);
+      const [frontUrl, leftUrl, rightUrl] = await Promise.all(uploadPromises);
 
       // Prepare verification images object
       const verificationImages = {
         front: frontUrl,
         left: leftUrl,
         right: rightUrl,
-        up: upUrl,
       };
 
       // Update user model with verification images and status
