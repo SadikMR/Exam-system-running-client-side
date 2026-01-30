@@ -785,6 +785,7 @@ const LiveExamRoom = () => {
         const result = await response.json();
         console.log("✅ Success:", result);
         clearExamStorage();
+        stopCamera(); // Stop webcam before navigating
         await exitFullscreen();
         setTimeout(() => {
           navigate("/");
@@ -798,6 +799,7 @@ const LiveExamRoom = () => {
           text: error.message || "Failed to submit exam. Please try again.",
           confirmButtonText: "OK",
         });
+        stopCamera(); // Stop webcam on error
         await exitFullscreen();
       }
     } catch (error) {
@@ -808,6 +810,7 @@ const LiveExamRoom = () => {
         text: "Network error. Please try again.",
         confirmButtonText: "OK",
       });
+      stopCamera(); // Stop webcam on network error
       await exitFullscreen();
     } finally {
       setSubmissionLoading(false);
@@ -923,6 +926,7 @@ const LiveExamRoom = () => {
 
   if (isExpelled) {
     clearExamStorage();
+    stopCamera(); // Stop webcam when expelled
     return <ExpelledScreen onOk={() => navigate("/")} />;
   }
 
