@@ -768,6 +768,10 @@ const LiveExamRoom = () => {
       JSON.stringify(submissionData, null, 2)
     );
 
+    // Stop webcam BEFORE setting exam as completed to ensure it stops properly
+    console.log("📹 Stopping webcam before exam completion...");
+    stopCamera();
+    
     setExamCompleted(true);
 
     try {
@@ -785,7 +789,6 @@ const LiveExamRoom = () => {
         const result = await response.json();
         console.log("✅ Success:", result);
         clearExamStorage();
-        stopCamera(); // Stop webcam before navigating
         await exitFullscreen();
         setTimeout(() => {
           navigate("/");
