@@ -93,10 +93,17 @@ const useWebcamMonitoring = (
 
   // Stop camera
   const stopCamera = useCallback(() => {
+    console.log("📹 Stopping camera...");
     if (videoRef.current?.srcObject) {
-      videoRef.current.srcObject.getTracks().forEach((track) => track.stop());
+      const tracks = videoRef.current.srcObject.getTracks();
+      tracks.forEach((track) => {
+        track.stop();
+        console.log(`🛑 Stopped track: ${track.kind}`);
+      });
+      videoRef.current.srcObject = null;
     }
     setCameraActive(false);
+    console.log("✅ Camera stopped successfully");
   }, []);
 
   // Detect head position based on facial landmarks
