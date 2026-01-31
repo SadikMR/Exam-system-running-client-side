@@ -29,18 +29,18 @@ export default function Footer() {
               <p className="text-xs text-muted-foreground mb-3">Jashore University of Science and Technology</p>
               <div className="space-y-1 pt-2 border-t border-border">
                 <a
-                  href="mailto:kamrul@example.com"
+                  href="mailto:mk.islam@just.edu.bd"
                   className="flex items-center gap-2 text-muted-foreground hover:text-accent transition-colors text-xs"
                 >
                   <Mail className="w-3 h-3" />
-                  [Add Supervisor Email]
+                  mk.islam@just.edu.bd
                 </a>
                 <a
-                  href="tel:+8801234567890"
-                  className="flex items-center gap-2 text-gray-300 hover:text-blue-400 transition-colors text-xs"
+                  href="tel:+8801729885196"
+                  className="flex items-center gap-2 text-muted-foreground hover:text-accent transition-colors text-xs"
                 >
                   <Phone className="w-3 h-3" />
-                  [Add Supervisor Phone]
+                  +880 1729-885196
                 </a>
               </div>
             </div>
@@ -79,7 +79,16 @@ export default function Footer() {
             {/* Co-Developer */}
             <div className="pt-2 border-t border-border">
               <p className="text-xs font-semibold text-accent mb-1">Co-Developer</p>
-              <p className="text-sm font-bold text-foreground">Mobasher Alam</p>
+              <p className="text-sm font-bold text-foreground mb-2">Mobasher Alam</p>
+              <div className="space-y-1">
+                <a
+                  href="tel:+8801571185961"
+                  className="flex items-center gap-2 text-muted-foreground hover:text-accent transition-colors text-xs"
+                >
+                  <Phone className="w-3 h-3" />
+                  +880 1571-185961
+                </a>
+              </div>
             </div>
           </div>
         </div>
