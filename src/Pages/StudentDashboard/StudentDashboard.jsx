@@ -330,7 +330,7 @@ const Profile = () => {
         <div className="max-w-[1400px] mx-auto px-3 sm:px-4 md:px-8">
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-0 items-center justify-between py-3 sm:py-0 sm:h-20">
             <div className="text-2xl sm:text-3xl font-extrabold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-              My Dashboard
+              Student Dashboard
             </div>
 
             {/* Settings & profile menu */}
@@ -396,72 +396,6 @@ const Profile = () => {
       </div>
 
       <div className="max-w-[1400px] mx-auto px-2 sm:px-4 md:px-8 pt-6">
-        {/* User Profile Card */}
-        <div className="bg-white rounded-3xl shadow-2xl p-4 md:p-6 lg:p-8 mb-8 border border-gray-200">
-          <div className="flex flex-col md:flex-row items-center md:items-start gap-5 md:gap-8">
-            {/* Profile Image */}
-            <div className="relative mb-4 md:mb-0 md:mr-6">
-              {userInfo?.profileImage ? (
-                <img
-                  src={userInfo.profileImage}
-                  alt="Profile"
-                  className="w-20 h-20 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full object-cover border-2 md:border-4 border-indigo-200 shadow-lg"
-                />
-              ) : (
-                <div className="w-20 h-20 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-white text-2xl sm:text-4xl md:text-5xl font-bold shadow-lg border-2 md:border-4 border-white">
-                  {userInfo?.username?.charAt(0).toUpperCase() || "U"}
-                </div>
-              )}
-              {/* Online indicator */}
-              <div className="absolute bottom-0 right-0 w-4 h-4 md:w-6 md:h-6 bg-green-500 rounded-full border-2 md:border-4 border-white shadow-lg"></div>
-            </div>
-
-            {/* Responsive Info Grid */}
-            <div className="flex-1 grid grid-cols-1 gap-2 sm:gap-4 w-full sm:grid-cols-2">
-              {/* Each item: smaller padding, font, and spacing */}
-              {[
-                {
-                  icon: <FiUser />,
-                  label: "Username",
-                  value: userInfo?.username,
-                },
-                {
-                  icon: <FiUser />,
-                  label: "Full Name",
-                  value: userInfo?.fullName,
-                },
-                { icon: <FiMail />, label: "Email", value: userInfo?.email },
-                { icon: <FiPhone />, label: "Phone", value: userInfo?.phone },
-                {
-                  icon: <FiBook />,
-                  label: "College/University",
-                  value: userInfo?.college || userInfo?.university,
-                },
-                {
-                  icon: <FiMapPin />,
-                  label: "Address",
-                  value: userInfo?.address,
-                },
-              ].map((item, i) => (
-                <div
-                  key={i}
-                  className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl sm:rounded-2xl p-2 sm:p-3 md:p-4 border border-indigo-100"
-                >
-                  <div className="flex items-center gap-2 mb-1">
-                    {item.icon}
-                    <span className="text-xs sm:text-sm font-semibold text-gray-600">
-                      {item.label}
-                    </span>
-                  </div>
-                  <p className="text-base sm:text-lg font-bold text-gray-900 truncate">
-                    {item.value || "N/A"}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
         {/* Statistics Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-10">
           {[
