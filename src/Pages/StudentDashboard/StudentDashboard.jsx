@@ -330,18 +330,11 @@ const Profile = () => {
         <div className="max-w-[1400px] mx-auto px-3 sm:px-4 md:px-8">
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-0 items-center justify-between py-3 sm:py-0 sm:h-20">
             <div className="text-2xl sm:text-3xl font-extrabold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-              Student Dashboard
+              Dashboard
             </div>
 
-            {/* Settings & profile menu */}
+            {/* Profile menu */}
             <div className="flex items-center gap-3">
-              <button
-                onClick={() => navigate("/settings")}
-                className="flex items-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-bold transition-all shadow-sm"
-              >
-                <FiSettings size={20} />
-                <span className="hidden sm:inline">Settings</span>
-              </button>
 
               <div className="relative">
                 <button
