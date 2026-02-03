@@ -323,16 +323,16 @@ const LiveExamRoom = () => {
     }
   }, [commonViolationCount, examData, examStarted, examCompleted]);
 
-  // Ban user and auto-submit if common violation count reaches 10
+  // Ban user and auto-submit if common violation count reaches 5
   useEffect(() => {
     if (
       examStarted &&
       !examCompleted &&
-      commonViolationCount >= 10 &&
+      commonViolationCount >= 5 &&
       examData
     ) {
       console.log(
-        `🚫 User banned: Common violation count reached ${commonViolationCount} (limit: 10)`
+        `🚫 User banned: Common violation count reached ${commonViolationCount} (limit: 5)`
       );
       
       // Show warning before auto-submitting
@@ -344,7 +344,7 @@ const LiveExamRoom = () => {
             <strong>Violation Limit Exceeded</strong>
           </p>
           <p style="font-size: 14px;">
-            You have exceeded the maximum violation limit (10 violations).<br/>
+            You have exceeded the maximum violation limit (5 violations).<br/>
             Your exam will be automatically submitted.
           </p>
           <p style="font-size: 12px; color: #666; margin-top: 15px;">
@@ -360,7 +360,7 @@ const LiveExamRoom = () => {
         // Auto-submit after user acknowledges the warning
         // Note: handleAutoSubmit is stable enough as it checks examCompleted internally
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        handleAutoSubmit("expelled", true, "Exceeded maximum violation limit (10 violations)");
+        handleAutoSubmit("expelled", true, "Exceeded maximum violation limit (5 violations)");
       });
     }
   }, [commonViolationCount, examStarted, examCompleted, examData]);
