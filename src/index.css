@@ -1,6 +1,39 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ======================================================
+   SweetAlert2 — Fix for Tailwind preflight resetting
+   button bg to transparent, making buttons invisible
+   until hover.
+   ====================================================== */
+.swal2-confirm {
+  background-color: hsl(160, 84%, 39%) !important; /* accent/emerald */
+  color: #fff !important;
+}
+
+.swal2-confirm:hover {
+  background-color: hsl(160, 84%, 32%) !important;
+}
+
+.swal2-cancel {
+  background-color: hsl(215, 16%, 47%) !important; /* muted-foreground */
+  color: #fff !important;
+}
+
+.swal2-cancel:hover {
+  background-color: hsl(215, 16%, 38%) !important;
+}
+
+.swal2-deny {
+  background-color: hsl(0, 72%, 51%) !important; /* destructive */
+  color: #fff !important;
+}
+
+.swal2-deny:hover {
+  background-color: hsl(0, 72%, 42%) !important;
+}
+
 /* Hide navbar and other elements when in fullscreen */
 :fullscreen {
   /* Hide all headers/navbars */
