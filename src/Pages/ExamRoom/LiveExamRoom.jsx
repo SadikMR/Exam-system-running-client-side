@@ -434,14 +434,9 @@ const LiveExamRoom = () => {
     }
   }, [verificationImages]);
 
-  // Start camera when exam starts and monitoring is enabled
+  // Start camera when exam starts (always, regardless of verification images)
   useEffect(() => {
-    if (
-      examStarted &&
-      !examCompleted &&
-      webcamMonitoringEnabled &&
-      modelsLoaded
-    ) {
+    if (examStarted && !examCompleted && modelsLoaded) {
       startCamera();
     } else if (examCompleted || !examStarted) {
       stopCamera();
@@ -453,11 +448,19 @@ const LiveExamRoom = () => {
   }, [
     examStarted,
     examCompleted,
-    webcamMonitoringEnabled,
     modelsLoaded,
     startCamera,
     stopCamera,
   ]);
+
+  // Stop camera and clear storage when expelled
+  useEffect(() => {
+    if (isExpelled) {
+      stopCamera();
+      clearExamStorage();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isExpelled]);
 
   // Log webcam violations to backend
   useEffect(() => {
@@ -928,8 +931,6 @@ const LiveExamRoom = () => {
   }
 
   if (isExpelled) {
-    clearExamStorage();
-    stopCamera(); // Stop webcam when expelled
     return <ExpelledScreen onOk={() => navigate("/")} />;
   }
 
@@ -1056,7 +1057,7 @@ const LiveExamRoom = () => {
           />
 
           {/* Webcam Monitoring Panel */}
-          {webcamMonitoringEnabled && examStarted && !examCompleted && (
+          {examStarted && !examCompleted && (
             <div className="fixed bottom-4 right-4 z-30">
               <WebcamMonitoringPanel
                 videoRef={videoRef}
