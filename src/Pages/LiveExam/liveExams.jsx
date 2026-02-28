@@ -418,7 +418,13 @@ const LiveExamsPage = () => {
           const filteredData = data.data.exams.filter((exam) =>
             ["BCS", "HSC", "Bank"].includes(exam.examType)
           );
-          setLiveExams(filteredData);
+          // Sort: real exams first, demo/practice exams last
+          const sortedData = filteredData.sort((a, b) => {
+            const aIsDemo = a.isDemo || a.isPractice ? 1 : 0;
+            const bIsDemo = b.isDemo || b.isPractice ? 1 : 0;
+            return aIsDemo - bIsDemo;
+          });
+          setLiveExams(sortedData);
         } else {
           throw new Error(data.message || "Failed to fetch live exams");
         }
@@ -915,6 +921,11 @@ const LiveExamsPage = () => {
               {exam.isPremium && (
                 <span className="bg-yellow-400 text-yellow-900 text-xs px-2 py-1 rounded-full font-medium">
                   ⭐ Premium
+                </span>
+              )}
+              {(exam.isDemo || exam.isPractice) && (
+                <span className="bg-violet-500 text-white text-xs px-2 py-1 rounded-full font-semibold tracking-wide shadow-sm">
+                  🎓 Demo
                 </span>
               )}
               {isAuthenticated && exam.isRegistered && (
