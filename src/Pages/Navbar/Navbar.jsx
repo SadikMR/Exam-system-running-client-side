@@ -205,7 +205,7 @@ const Navbar = () => {
         setShowBankMenu(false);
         setIsMobileMenuOpen(false);
       }}
-      className="flex items-center gap-3 w-full px-6 py-4 text-left text-base md:text-lg font-semibold rounded-2xl transition-all duration-300 text-muted-foreground dark:text-white hover:bg-muted dark:hover:bg-gray-800 hover:text-accent dark:hover:text-accent hover:shadow-sm"
+      className="flex items-center gap-3 w-full px-6 py-4 text-left text-base md:text-lg font-semibold rounded-2xl transition-all duration-300 text-muted-foreground hover:bg-muted hover:text-accent hover:shadow-sm"
     >
       {icon && <span className="text-lg">{icon}</span>}
       <span>{children}</span>
