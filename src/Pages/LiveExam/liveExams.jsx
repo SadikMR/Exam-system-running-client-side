@@ -332,6 +332,7 @@ const LiveExamsPage = () => {
   const [error, setError] = useState(null);
   const [registrationModal, setRegistrationModal] = useState({ isOpen: false, exam: null });
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [reminderExamIds, setReminderExamIds] = useState(new Set());
 
   // Only BCS, HSC, Bank
   const categories = [
@@ -385,6 +386,18 @@ const LiveExamsPage = () => {
   useEffect(() => {
     const token = localStorage.getItem("userToken");
     setIsAuthenticated(!!token);
+
+    // Fetch user's existing reminders if logged in
+    if (token) {
+      fetch(`${BACKEND_URL}/liveExam/reminders`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.success) setReminderExamIds(new Set(data.examIds));
+        })
+        .catch(() => {});
+    }
   }, []);
 
   // Fetch live exams from API
@@ -772,14 +785,39 @@ const LiveExamsPage = () => {
 
     const handleSetReminder = async (e) => {
       e.preventDefault();
-      await Swal.fire({
-        icon: "success",
-        title: "Reminder Set!",
-        text: `Reminder has been set for: ${exam.title}`,
-        confirmButtonText: "OK",
-        timer: 3000,
-        timerProgressBar: true,
-      });
+      const token = localStorage.getItem("userToken");
+      if (!token) {
+        Swal.fire({ icon: "info", title: "Login Required", text: "Please login to set exam reminders", confirmButtonText: "Login" })
+          .then((r) => { if (r.isConfirmed) navigate("/login"); });
+        return;
+      }
+      try {
+        if (hasReminder) {
+          const res = await fetch(`${BACKEND_URL}/liveExam/reminder/${examId}`, {
+            method: "DELETE", headers: { Authorization: `Bearer ${token}` },
+          });
+          const data = await res.json();
+          if (data.success) {
+            setReminderExamIds((prev) => { const s = new Set(prev); s.delete(examId); return s; });
+            Swal.fire({ icon: "success", title: "Reminder Removed", timer: 2000, showConfirmButton: false });
+          }
+        } else {
+          const res = await fetch(`${BACKEND_URL}/liveExam/reminder`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ examId }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            setReminderExamIds((prev) => new Set([...prev, examId]));
+            Swal.fire({ icon: "success", title: "Reminder Set! 🔔", text: "We'll email you 1 hour before the exam starts.", timer: 2500, showConfirmButton: false });
+          } else {
+            Swal.fire({ icon: "info", title: "Cannot Set Reminder", text: data.message });
+          }
+        }
+      } catch {
+        Swal.fire({ icon: "error", title: "Error", text: "Failed to update reminder. Please try again." });
+      }
     };
 
     // Updated handleEnterExam function with registration check
@@ -888,6 +926,47 @@ const LiveExamsPage = () => {
       setRegistrationModal({ isOpen: true, exam });
     };
 
+    const examId = exam._id || exam.id;
+    const hasReminder = reminderExamIds.has(examId);
+    const showBell = true; // Bell available on all exams
+
+    const handleReminderClick = async (e) => {
+      e.stopPropagation();
+      const token = localStorage.getItem("userToken");
+      if (!token) {
+        Swal.fire({ icon: "info", title: "Login Required", text: "Please login to set exam reminders", confirmButtonText: "Login" })
+          .then((r) => { if (r.isConfirmed) navigate("/login"); });
+        return;
+      }
+      try {
+        if (hasReminder) {
+          const res = await fetch(`${BACKEND_URL}/liveExam/reminder/${examId}`, {
+            method: "DELETE", headers: { Authorization: `Bearer ${token}` },
+          });
+          const data = await res.json();
+          if (data.success) {
+            setReminderExamIds((prev) => { const s = new Set(prev); s.delete(examId); return s; });
+            Swal.fire({ icon: "success", title: "Reminder Removed", timer: 2000, showConfirmButton: false });
+          }
+        } else {
+          const res = await fetch(`${BACKEND_URL}/liveExam/reminder`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ examId }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            setReminderExamIds((prev) => new Set([...prev, examId]));
+            Swal.fire({ icon: "success", title: "Reminder Set! 🔔", text: "We'll email you 1 hour before the exam starts.", timer: 2500, showConfirmButton: false });
+          } else {
+            Swal.fire({ icon: "info", title: "Cannot Set Reminder", text: data.message });
+          }
+        }
+      } catch {
+        Swal.fire({ icon: "error", title: "Error", text: "Failed to update reminder. Please try again." });
+      }
+    };
+
     return (
       <div className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 border border-gray-100 hover:border-blue-200 overflow-hidden h-full flex flex-col relative">
         {/* Card Header */}
@@ -933,6 +1012,7 @@ const LiveExamsPage = () => {
                   ✓ Registered
                 </span>
               )}
+
             </div>
           </div>
         </div>
@@ -1066,9 +1146,13 @@ const LiveExamsPage = () => {
                 {examStatus.isMoreThanOneHour ? (
                   <button
                     onClick={handleSetReminder}
-                    className={`w-full bg-gradient-to-r ${examStatus.buttonColor} text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]`}
+                    className={`w-full font-semibold py-3 px-4 rounded-xl transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] ${
+                      hasReminder
+                        ? "bg-amber-500 text-white hover:bg-amber-600"
+                        : `bg-gradient-to-r ${examStatus.buttonColor} text-white`
+                    }`}
                   >
-                    🔔 Set Reminder
+                    {hasReminder ? "🔕 Remove Reminder" : "🔔 Set Reminder"}
                   </button>
                 ) : (
                   <div className={`w-full bg-gradient-to-r ${examStatus.buttonColor} text-white font-semibold py-3 px-4 rounded-xl text-center`}>
