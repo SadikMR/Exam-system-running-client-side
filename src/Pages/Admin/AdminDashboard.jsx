@@ -20,7 +20,7 @@ const AdminDashboard = () => {
   if (!adminInfo) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-indigo-600"></div>
+        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-accent"></div>
       </div>
     );
   }
@@ -28,13 +28,13 @@ const AdminDashboard = () => {
   return (
     <>
       <AdminNavbar />
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 py-12 px-6">
+      <div className="min-h-screen bg-background py-12 px-6">
         <div className="max-w-7xl mx-auto">
           <div className="mb-12 text-center">
-            <h2 className="text-4xl font-bold text-gray-800 mb-3">
+            <h2 className="text-4xl font-bold text-foreground mb-3">
               Welcome back, {adminInfo.name}
             </h2>
-            <p className="text-gray-600 text-lg">
+            <p className="text-muted-foreground text-lg">
               What would you like to do today?
             </p>
           </div>
@@ -45,7 +45,7 @@ const AdminDashboard = () => {
             {adminInfo.role === "admin" && (
               <div
                 onClick={() => navigate("/admin/management")}
-                className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer border border-gray-200 overflow-hidden group"
+                className="bg-card rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer border border-border overflow-hidden group"
               >
                 <div className="bg-gradient-to-br from-purple-500 to-indigo-600 p-6">
                   <div className="w-16 h-16 bg-white bg-opacity-20 rounded-xl flex items-center justify-center mb-4">
@@ -70,13 +70,13 @@ const AdminDashboard = () => {
                     Invite and manage admins and editors
                   </p>
                 </div>
-                <div className="p-6 bg-white group-hover:bg-gray-50 transition-colors">
+                <div className="p-6 bg-card group-hover:bg-muted transition-colors">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-600 font-medium">
                       Manage Team
                     </span>
                     <svg
-                      className="w-5 h-5 text-gray-400 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all"
+                      className="w-5 h-5 text-muted-foreground group-hover:text-accent group-hover:translate-x-1 transition-all"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -96,7 +96,7 @@ const AdminDashboard = () => {
             {/* Create Exam */}
             <div
               onClick={() => navigate("/admin/create-exam")}
-              className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer border border-gray-200 overflow-hidden group"
+              className="bg-card rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer border border-border overflow-hidden group"
             >
               <div className="bg-gradient-to-br from-green-500 to-teal-600 p-6">
                 <div className="w-16 h-16 bg-white bg-opacity-20 rounded-xl flex items-center justify-center mb-4">
@@ -121,13 +121,13 @@ const AdminDashboard = () => {
                   Design new exams and add questions
                 </p>
               </div>
-              <div className="p-6 bg-white group-hover:bg-gray-50 transition-colors">
+              <div className="p-6 bg-card group-hover:bg-muted transition-colors">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600 font-medium">
                     New Exam
                   </span>
                   <svg
-                    className="w-5 h-5 text-gray-400 group-hover:text-green-600 group-hover:translate-x-1 transition-all"
+                    className="w-5 h-5 text-muted-foreground group-hover:text-accent group-hover:translate-x-1 transition-all"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -171,13 +171,13 @@ const AdminDashboard = () => {
                   Edit existing exams and questions
                 </p>
               </div>
-              <div className="p-6 bg-white group-hover:bg-gray-50 transition-colors">
+              <div className="p-6 bg-card group-hover:bg-muted transition-colors">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600 font-medium">
                     Edit Exams
                   </span>
                   <svg
-                    className="w-5 h-5 text-gray-400 group-hover:text-orange-600 group-hover:translate-x-1 transition-all"
+                    className="w-5 h-5 text-muted-foreground group-hover:text-accent group-hover:translate-x-1 transition-all"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -221,13 +221,13 @@ const AdminDashboard = () => {
                   View finished exams and rankings
                 </p>
               </div>
-              <div className="p-6 bg-white group-hover:bg-gray-50 transition-colors">
+              <div className="p-6 bg-card group-hover:bg-muted transition-colors">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600 font-medium">
                     View Rankings
                   </span>
                   <svg
-                    className="w-5 h-5 text-gray-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all"
+                    className="w-5 h-5 text-muted-foreground group-hover:text-accent group-hover:translate-x-1 transition-all"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"

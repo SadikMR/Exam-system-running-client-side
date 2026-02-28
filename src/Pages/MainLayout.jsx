@@ -5,15 +5,7 @@ import Footer from "./Footer/Footer";
 const MainLayout = () => {
   const location = useLocation();
 
-  const hideNavbarFooterPaths = [
-    "/admin",
-    "/admin/management",
-    "/admin/register",
-    "/admin/login",
-    "/admin/create-exam",
-  ];
-
-  const shouldHide = hideNavbarFooterPaths.includes(location.pathname);
+  const shouldHide = location.pathname.startsWith("/admin");
 
   return (
     <div>

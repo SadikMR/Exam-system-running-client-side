@@ -171,7 +171,7 @@ const Profile = () => {
 
   return (
     <>
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 py-8 px-4 md:px-6">
+      <div className="min-h-screen bg-background py-8 px-4 md:px-6">
         <div className="max-w-6xl mx-auto">
           {/* Page Title */}
           <motion.div
@@ -179,10 +179,10 @@ const Profile = () => {
             animate={{ opacity: 1, y: 0 }}
             className="mb-8"
           >
-            <h1 className="text-4xl md:text-5xl font-bold text-gray-800 mb-2">
+            <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-2">
               My Profile
             </h1>
-            <p className="text-gray-600 text-lg">
+            <p className="text-muted-foreground text-lg">
               Manage your account and verification status
             </p>
           </motion.div>
@@ -244,8 +244,8 @@ const Profile = () => {
                         isSubmittingImages
                           ? "opacity-50 cursor-not-allowed"
                           : verificationInfo.color === "text-red-600"
-                          ? "bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800"
-                          : "bg-gradient-to-r from-yellow-600 to-yellow-700 hover:from-yellow-700 hover:to-yellow-800"
+                          ? "bg-accent hover:bg-accent/90"
+                          : "bg-amber-500 hover:bg-amber-600"
                       }`}
                     >
                       {isSubmittingImages ? (
@@ -283,8 +283,8 @@ const Profile = () => {
               className="space-y-4"
             >
               {/* Verification Status Card */}
-              <div className="bg-white rounded-xl shadow-lg p-6 border-t-4 border-blue-600">
-                <h3 className="text-xl font-bold text-gray-800 mb-4">
+              <div className="bg-card rounded-xl shadow-lg p-6 border-t-4 border-accent">
+                <h3 className="text-xl font-bold text-foreground mb-4">
                   Verification Status
                 </h3>
 
@@ -342,8 +342,8 @@ const Profile = () => {
               </div>
 
               {/* Security Tips */}
-              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl shadow-lg p-6 border border-blue-200">
-                <h3 className="text-lg font-bold text-gray-800 mb-4">
+              <div className="bg-muted rounded-xl shadow-lg p-6 border border-border">
+                <h3 className="text-lg font-bold text-foreground mb-4">
                   Security Tips
                 </h3>
                 <ul className="space-y-2 text-sm text-gray-700">

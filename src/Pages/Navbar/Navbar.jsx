@@ -442,9 +442,7 @@ const Navbar = () => {
                         />
                       ) : (
                         <div className="w-10 h-10 rounded-2xl bg-accent/10 flex items-center justify-center relative z-10">
-                          <span className="text-lg font-bold text-accent">
-                            {(userProfile?.name || "U").charAt(0).toUpperCase()}
-                          </span>
+                          <User className="w-6 h-6 text-accent" />
                         </div>
                       )}
                     </button>

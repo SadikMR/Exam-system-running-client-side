@@ -128,7 +128,7 @@ const Profile = () => {
     const metrics = exam.resultMetrics;
 
     return (
-      <div className="group bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden border border-gray-100 hover:border-indigo-300 h-full flex flex-col">
+      <div className="group bg-card rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden border border-border hover:border-accent h-full flex flex-col">
         {/* Card Header */}
         <div
           className={`p-6 ${
@@ -141,12 +141,12 @@ const Profile = () => {
               : "bg-gradient-to-br from-red-50 to-pink-50"
           }`}
         >
-          <h3 className="font-bold text-gray-900 text-xl mb-3 line-clamp-2 min-h-[56px] group-hover:text-indigo-600 transition-colors">
+          <h3 className="font-bold text-foreground text-xl mb-3 line-clamp-2 min-h-[56px] group-hover:text-accent transition-colors">
             {snapshot.title}
           </h3>
           <div className="flex items-center gap-2 flex-wrap">
             {!isLive && snapshot.category && (
-              <span className="px-3 py-1.5 bg-white text-indigo-700 text-xs font-bold rounded-full shadow-sm border border-indigo-200">
+              <span className="px-3 py-1.5 bg-card text-accent text-xs font-bold rounded-full shadow-sm border border-border">
                 {snapshot.category === "full" ? "Full Exam" : "Subject-wise"}
               </span>
             )}
@@ -197,9 +197,9 @@ const Profile = () => {
               </p>
             </div>
             <div className="bg-white rounded-xl p-3 text-center shadow-sm border border-gray-100">
-              <FiAward size={18} className="text-indigo-600 mx-auto mb-1" />
+              <FiAward size={18} className="text-accent mx-auto mb-1" />
               <p className="text-xs text-gray-500 mb-1 font-medium">Marks</p>
-              <p className="text-lg font-bold text-indigo-600">
+              <p className="text-lg font-bold text-accent">
                 {metrics.totalMarksObtained.toFixed(0)}
               </p>
             </div>
@@ -214,7 +214,7 @@ const Profile = () => {
               localStorage.setItem(`exam_${exam._id}_type`, isLive ? "live" : "practice");
               navigate(`/student/exam-review/${exam._id}`);
             }}
-            className="w-full py-3.5 rounded-xl font-bold transition-all duration-300 flex items-center justify-center gap-2 bg-indigo-600 text-white hover:bg-indigo-700 shadow-md hover:shadow-lg text-base"
+            className="w-full py-3.5 rounded-xl font-bold transition-all duration-300 flex items-center justify-center gap-2 bg-accent text-accent-foreground hover:bg-accent/90 shadow-md hover:shadow-lg text-base"
           >
             <FiEye size={20} />
             Show Review
@@ -279,7 +279,7 @@ const Profile = () => {
               <button
                 onClick={() => setPage(Math.max(0, page - 1))}
                 disabled={page === 0}
-                className="p-3 rounded-xl bg-gray-50 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                className="p-3 rounded-xl bg-muted text-muted-foreground hover:bg-accent/10 hover:text-accent disabled:opacity-40 disabled:cursor-not-allowed transition-all"
               >
                 <FiChevronLeft size={22} />
               </button>
@@ -289,7 +289,7 @@ const Profile = () => {
               <button
                 onClick={() => setPage(Math.min(totalPages - 1, page + 1))}
                 disabled={page >= totalPages - 1}
-                className="p-3 rounded-xl bg-gray-50 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                className="p-3 rounded-xl bg-muted text-muted-foreground hover:bg-accent/10 hover:text-accent disabled:opacity-40 disabled:cursor-not-allowed transition-all"
               >
                 <FiChevronRight size={22} />
               </button>
@@ -309,13 +309,13 @@ const Profile = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <div className="relative w-24 h-24 mx-auto mb-6">
-            <div className="absolute inset-0 rounded-full border-4 border-indigo-200"></div>
-            <div className="absolute inset-0 rounded-full border-4 border-indigo-600 border-t-transparent animate-spin"></div>
+            <div className="absolute inset-0 rounded-full border-4 border-muted"></div>
+            <div className="absolute inset-0 rounded-full border-4 border-accent border-t-transparent animate-spin"></div>
           </div>
-          <p className="text-gray-700 font-bold text-xl">
+          <p className="text-foreground font-bold text-xl">
             Loading your dashboard...
           </p>
         </div>
@@ -324,12 +324,12 @@ const Profile = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 pb-12">
+    <div className="min-h-screen bg-background pb-12">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 shadow-md sticky top-0 z-50">
+      <div className="bg-card border-b border-border shadow-md sticky top-0 z-50">
         <div className="max-w-[1400px] mx-auto px-3 sm:px-4 md:px-8">
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-0 items-center justify-between py-3 sm:py-0 sm:h-20">
-            <div className="text-2xl sm:text-3xl font-extrabold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+            <div className="text-2xl sm:text-3xl font-extrabold text-foreground">
               Dashboard
             </div>
 
@@ -339,7 +339,7 @@ const Profile = () => {
               <div className="relative">
                 <button
                   onClick={() => setShowProfileMenu(!showProfileMenu)}
-                  className="flex items-center gap-3 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl font-bold transition-all shadow-md"
+                  className="flex items-center gap-3 px-4 py-2.5 bg-accent hover:bg-accent/90 text-accent-foreground rounded-xl font-bold transition-all shadow-md"
                 >
                   <div className="w-9 h-9 rounded-full bg-white/30 flex items-center justify-center text-base font-bold">
                     {userInfo?.username?.charAt(0).toUpperCase() || "U"}
@@ -351,13 +351,13 @@ const Profile = () => {
 
                 {/* Profile menu */}
                 {showProfileMenu && (
-                  <div className="absolute right-0 mt-3 w-60 bg-white rounded-2xl shadow-2xl border border-gray-200 py-2 z-50">
+                  <div className="absolute right-0 mt-3 w-60 bg-card rounded-2xl shadow-2xl border border-border py-2 z-50">
                     <button
                       onClick={() => {
                         navigate("/profile");
                         setShowProfileMenu(false);
                       }}
-                      className="w-full px-5 py-3 text-left hover:bg-indigo-50 flex items-center gap-3 text-gray-700 font-semibold transition-colors"
+                      className="w-full px-5 py-3 text-left hover:bg-muted flex items-center gap-3 text-muted-foreground hover:text-accent font-semibold transition-colors"
                     >
                       <FiUser size={20} />
                       View Profile
@@ -367,7 +367,7 @@ const Profile = () => {
                         navigate("/settings");
                         setShowProfileMenu(false);
                       }}
-                      className="w-full px-5 py-3 text-left hover:bg-indigo-50 flex items-center gap-3 text-gray-700 font-semibold transition-colors"
+                      className="w-full px-5 py-3 text-left hover:bg-muted flex items-center gap-3 text-muted-foreground hover:text-accent font-semibold transition-colors"
                     >
                       <FiSettings size={20} />
                       Settings
@@ -484,8 +484,8 @@ const Profile = () => {
         {/* Empty State */}
         {totalExams === 0 && (
           <div className="bg-white rounded-3xl shadow-2xl px-4 py-10 sm:px-10 sm:py-16 text-center border-2 border-dashed border-gray-300">
-            <div className="w-28 h-28 sm:w-40 sm:h-40 mx-auto mb-8 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full flex items-center justify-center">
-              <FiAward size={56} className="sm:size-80 text-indigo-600" />
+            <div className="w-28 h-28 sm:w-40 sm:h-40 mx-auto mb-8 bg-accent/10 rounded-full flex items-center justify-center">
+              <FiAward size={56} className="sm:size-80 text-accent" />
             </div>
             <h3 className="text-2xl sm:text-4xl font-extrabold text-gray-900 mb-3">
               No Exams Yet
@@ -496,7 +496,7 @@ const Profile = () => {
             </p>
             <button
               onClick={() => navigate("/exams")}
-              className="w-full sm:w-auto px-6 sm:px-10 py-3 sm:py-4 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white rounded-2xl font-extrabold text-base sm:text-xl shadow-2xl hover:from-indigo-700 hover:via-purple-700 hover:to-pink-700 transition-all"
+              className="w-full sm:w-auto px-6 sm:px-10 py-3 sm:py-4 bg-accent text-accent-foreground rounded-2xl font-extrabold text-base sm:text-xl shadow-2xl hover:bg-accent/90 transition-all"
             >
               Browse Available Exams
             </button>

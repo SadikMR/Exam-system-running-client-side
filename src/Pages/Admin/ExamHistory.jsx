@@ -45,8 +45,8 @@ const ExamHistory = () => {
     return (
       <>
         <AdminNavbar />
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-indigo-600"></div>
+        <div className="min-h-screen flex items-center justify-center bg-background">
+          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-accent"></div>
         </div>
       </>
     );
@@ -55,13 +55,13 @@ const ExamHistory = () => {
   return (
     <>
       <AdminNavbar />
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 py-12 px-6">
+      <div className="min-h-screen bg-background py-12 px-6">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="mb-8">
             <button
               onClick={() => navigate("/admin")}
-              className="mb-4 flex items-center text-indigo-600 hover:text-indigo-800 transition-colors"
+              className="mb-4 flex items-center text-accent hover:text-accent/80 transition-colors"
             >
               <svg
                 className="w-5 h-5 mr-2"
@@ -78,7 +78,7 @@ const ExamHistory = () => {
               </svg>
               Back to Dashboard
             </button>
-            <h1 className="text-4xl font-bold text-gray-800 mb-2">
+            <h1 className="text-4xl font-bold text-foreground mb-2">
               Exam History
             </h1>
             <p className="text-gray-600">
@@ -122,7 +122,7 @@ const ExamHistory = () => {
               <div className="hidden md:block bg-white rounded-2xl shadow-lg overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gradient-to-r from-indigo-50 to-purple-50">
+                    <thead className="bg-muted">
                       <tr>
                         <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                           Exam Name
@@ -170,7 +170,7 @@ const ExamHistory = () => {
                             </div>
                           </td>
                           <td className="px-6 py-4 text-center whitespace-nowrap">
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-accent/10 text-accent">
                               {exam.totalParticipants}
                             </span>
                           </td>
@@ -203,7 +203,7 @@ const ExamHistory = () => {
                               onClick={() =>
                                 navigate(`/admin/exam-history/${exam._id}/ranking`)
                               }
-                              className="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors"
+                              className="inline-flex items-center px-4 py-2 bg-accent hover:bg-accent/90 text-accent-foreground text-sm font-medium rounded-lg transition-colors"
                             >
                               View Ranking
                               <svg
@@ -235,11 +235,11 @@ const ExamHistory = () => {
                     key={exam._id}
                     className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200"
                   >
-                    <div className="bg-gradient-to-r from-indigo-500 to-purple-600 p-4">
+                    <div className="bg-accent/90 p-4 text-white">
                       <h3 className="text-lg font-bold text-white mb-1">
                         {exam.title}
                       </h3>
-                      <p className="text-indigo-100 text-sm">{exam.examType}</p>
+                      <p className="text-white/80 text-sm">{exam.examType}</p>
                     </div>
                     
                     <div className="p-4 space-y-3">
@@ -292,7 +292,7 @@ const ExamHistory = () => {
                         onClick={() =>
                           navigate(`/admin/exam-history/${exam._id}/ranking`)
                         }
-                        className="w-full flex items-center justify-center px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors"
+                        className="w-full flex items-center justify-center px-4 py-3 bg-accent hover:bg-accent/90 text-accent-foreground text-sm font-medium rounded-lg transition-colors"
                       >
                         View Ranking
                         <svg

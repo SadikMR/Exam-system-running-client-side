@@ -39,15 +39,15 @@ const FilterDrawer = ({
 
       {/* Drawer */}
       <div
-        className={`fixed right-0 top-0 h-full w-96 max-w-[90vw] bg-white shadow-2xl z-50 transform transition-transform duration-300 ${
+        className={`fixed right-0 top-0 h-full w-96 max-w-[90vw] bg-card shadow-2xl z-50 transform transition-transform duration-300 ${
           isOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
         <div className="flex flex-col h-full">
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100">
+          <div className="flex items-center justify-between p-6 border-b border-border bg-muted">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-gray-600 to-gray-700 rounded-lg flex items-center justify-center">
+              <div className="w-10 h-10 bg-accent rounded-xl flex items-center justify-center">
                 <svg
                   className="w-5 h-5 text-white"
                   fill="none"
@@ -62,13 +62,13 @@ const FilterDrawer = ({
                   />
                 </svg>
               </div>
-              <h3 className="text-xl font-bold text-gray-800">
+              <h3 className="text-xl font-bold text-foreground">
                 Advanced Filters
               </h3>
             </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
+              className="p-2 hover:bg-border rounded-lg transition-colors"
             >
               <svg
                 className="w-6 h-6 text-gray-600"
@@ -90,15 +90,15 @@ const FilterDrawer = ({
           <div className="flex-1 overflow-y-auto p-6 space-y-8">
             {/* Active Filters */}
             {activeFiltersCount > 0 && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="bg-accent/10 border border-accent/30 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-blue-800">
+                  <span className="text-sm font-medium text-accent">
                     {activeFiltersCount} filter
                     {activeFiltersCount > 1 ? "s" : ""} active
                   </span>
                   <button
                     onClick={clearFilters}
-                    className="text-sm text-blue-700 hover:text-blue-900 font-medium"
+                    className="text-sm text-accent hover:text-accent/80 font-medium"
                   >
                     Clear all
                   </button>
@@ -108,7 +108,7 @@ const FilterDrawer = ({
 
             {/* Exam Category Filter */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-4">
+              <label className="block text-sm font-semibold text-muted-foreground mb-4">
                 📚 Exam Category
               </label>
               <div className="space-y-2">
@@ -116,8 +116,8 @@ const FilterDrawer = ({
                   onClick={() => setSelectedCategory("all")}
                   className={`w-full text-left p-3 rounded-lg border-2 transition-all ${
                     selectedCategory === "all"
-                      ? "border-blue-500 bg-blue-600 text-white shadow-md"
-                      : "border-gray-200 bg-gray-50 text-gray-700 hover:border-gray-300 hover:bg-gray-100"
+                      ? "border-accent bg-accent text-white shadow-md"
+                      : "border-border bg-muted text-muted-foreground hover:border-accent/50 hover:bg-accent/5"
                   }`}
                 >
                   <div className="flex items-center space-x-3">
@@ -131,8 +131,8 @@ const FilterDrawer = ({
                     onClick={() => setSelectedCategory(category.value)}
                     className={`w-full text-left p-3 rounded-lg border-2 transition-all ${
                       selectedCategory === category.value
-                        ? "border-blue-500 bg-blue-600 text-white shadow-md"
-                        : "border-gray-200 bg-gray-50 text-gray-700 hover:border-gray-300 hover:bg-gray-100"
+                        ? "border-accent bg-accent text-white shadow-md"
+                        : "border-border bg-muted text-muted-foreground hover:border-accent/50 hover:bg-accent/5"
                     }`}
                   >
                     <div className="flex items-center space-x-3">
@@ -146,7 +146,7 @@ const FilterDrawer = ({
 
             {/* Test Type Filter */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-4">
+              <label className="block text-sm font-semibold text-muted-foreground mb-4">
                 🎯 Test Type
               </label>
               <div className="space-y-2">
@@ -154,8 +154,8 @@ const FilterDrawer = ({
                   onClick={() => setSelectedTestType("all")}
                   className={`w-full text-left p-3 rounded-lg border-2 transition-all ${
                     selectedTestType === "all"
-                      ? "border-purple-500 bg-purple-600 text-white shadow-md"
-                      : "border-gray-200 bg-gray-50 text-gray-700 hover:border-gray-300 hover:bg-gray-100"
+                      ? "border-accent bg-accent text-white shadow-md"
+                      : "border-border bg-muted text-muted-foreground hover:border-accent/50 hover:bg-accent/5"
                   }`}
                 >
                   <span className="font-medium">All Types</span>
@@ -166,8 +166,8 @@ const FilterDrawer = ({
                     onClick={() => setSelectedTestType(type.value)}
                     className={`w-full text-left p-3 rounded-lg border-2 transition-all ${
                       selectedTestType === type.value
-                        ? "border-purple-500 bg-purple-600 text-white shadow-md"
-                        : "border-gray-200 bg-gray-50 text-gray-700 hover:border-gray-300 hover:bg-gray-100"
+                        ? "border-accent bg-accent text-white shadow-md"
+                        : "border-border bg-muted text-muted-foreground hover:border-accent/50 hover:bg-accent/5"
                     }`}
                   >
                     <div className="flex items-center space-x-3">
@@ -182,7 +182,7 @@ const FilterDrawer = ({
             {/* Subject Filter - Only show when subject-wise is selected */}
             {selectedTestType === "subject-wise" && (
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-4">
+                <label className="block text-sm font-semibold text-muted-foreground mb-4">
                   📖 Subjects ({selectedSubjects.length} selected)
                 </label>
                 <div className="space-y-2 max-h-60 overflow-y-auto">
@@ -192,8 +192,8 @@ const FilterDrawer = ({
                       onClick={() => handleSubjectToggle(subject)}
                       className={`w-full text-left p-3 rounded-lg border-2 transition-all ${
                         selectedSubjects.includes(subject)
-                          ? "border-green-500 bg-green-600 text-white shadow-md"
-                          : "border-gray-200 bg-gray-50 text-gray-700 hover:border-gray-300 hover:bg-gray-100"
+                          ? "border-accent bg-accent text-white shadow-md"
+                          : "border-border bg-muted text-muted-foreground hover:border-accent/50 hover:bg-accent/5"
                       }`}
                     >
                       <div className="flex items-center justify-between">
@@ -241,11 +241,11 @@ const SubjectsOverlay = ({ isOpen, onClose, subjects, examTitle }) => {
       {/* Overlay Content */}
       <div className="relative bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-6 text-white">
+        <div className="bg-accent/90 p-6 text-white">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-xl font-bold mb-1">Exam Subjects</h3>
-              <p className="text-blue-100 text-sm">{examTitle}</p>
+              <p className="text-white/80 text-sm">{examTitle}</p>
             </div>
             <button
               onClick={onClose}
@@ -274,7 +274,7 @@ const SubjectsOverlay = ({ isOpen, onClose, subjects, examTitle }) => {
             {subjects.map((subject, index) => (
               <div
                 key={index}
-                className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg p-4 border-l-4 border-blue-500 hover:shadow-md transition-shadow"
+                className="bg-muted rounded-lg p-4 border-l-4 border-accent hover:shadow-md transition-shadow"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
@@ -286,7 +286,7 @@ const SubjectsOverlay = ({ isOpen, onClose, subjects, examTitle }) => {
                     </p>
                   </div>
                   <div className="ml-4">
-                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-accent/10 text-accent">
                       {subject.questionCount} Q
                     </span>
                   </div>
@@ -297,7 +297,7 @@ const SubjectsOverlay = ({ isOpen, onClose, subjects, examTitle }) => {
         </div>
 
         {/* Footer */}
-        <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
+        <div className="bg-muted px-6 py-4 border-t border-border">
           <div className="flex items-center justify-between">
             <span className="text-sm text-gray-600">
               Total: {subjects.length} subjects,{" "}
@@ -305,7 +305,7 @@ const SubjectsOverlay = ({ isOpen, onClose, subjects, examTitle }) => {
             </span>
             <button
               onClick={onClose}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+              className="px-4 py-2 bg-accent text-accent-foreground rounded-lg hover:bg-accent/90 transition-colors"
             >
               Close
             </button>
