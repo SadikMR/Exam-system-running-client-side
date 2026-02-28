@@ -1,463 +1,351 @@
 import React, { useState, useRef, useEffect } from "react";
-import ReactQuill from "react-quill";
+import ReactQuill, { Quill } from "react-quill";
 import "react-quill/dist/quill.snow.css";
+import "katex/dist/katex.min.css";
+import katex from "katex";
+import { InlineMath } from "react-katex";
 
+// ── Custom Quill Embed Blot for rendered math ─────────────────────────
+const Embed = Quill.import("blots/embed");
+
+class MathBlot extends Embed {
+  static create(latex) {
+    const node = super.create();
+    node.setAttribute("data-latex", latex);
+    node.setAttribute("contenteditable", "false");
+    node.className = "math-formula-blot";
+    try {
+      node.innerHTML = katex.renderToString(latex, {
+        throwOnError: false,
+        displayMode: false,
+      });
+    } catch {
+      node.textContent = latex;
+    }
+    return node;
+  }
+
+  static value(node) {
+    return node.getAttribute("data-latex");
+  }
+}
+
+MathBlot.blotName = "mathformula";
+MathBlot.tagName = "span";
+MathBlot.className = "math-formula-blot";
+
+// Only register once
+if (!Quill.imports["formats/mathformula"]) {
+  Quill.register(MathBlot);
+}
+
+// ── MathEditor Component ──────────────────────────────────────────────
 const MathEditor = ({ value, onChange, placeholder, className = "" }) => {
   const quillRef = useRef(null);
   const [showMathPanel, setShowMathPanel] = useState(false);
+  const [activeCategory, setActiveCategory] = useState("greek");
+  const [showLatexBuilder, setShowLatexBuilder] = useState(false);
+  const [latexInput, setLatexInput] = useState("");
 
-  // Force left alignment and proper cursor positioning
   useEffect(() => {
     const quill = quillRef.current?.getEditor();
-    if (quill) {
-      // Force left alignment on initialization
-      quill.format("align", false);
-      quill.format("direction", "ltr");
-
-      // Set default paragraph alignment
-      const Delta = quill.constructor.import("delta");
-      quill.clipboard.addMatcher(Node.ELEMENT_NODE, (node, delta) => {
-        const ops = [];
-        delta.ops.forEach((op) => {
-          if (op.insert && typeof op.insert === "string") {
-            ops.push({
-              insert: op.insert,
-              attributes: { ...op.attributes, align: false },
-            });
-          } else {
-            ops.push(op);
-          }
-        });
-        return new Delta(ops);
+    if (!quill) return;
+    quill.format("align", false);
+    quill.format("direction", "ltr");
+    const Delta = quill.constructor.import("delta");
+    quill.clipboard.addMatcher(Node.ELEMENT_NODE, (node, delta) => {
+      const ops = [];
+      delta.ops.forEach((op) => {
+        if (op.insert && typeof op.insert === "string") {
+          ops.push({ insert: op.insert, attributes: { ...op.attributes, align: false } });
+        } else { ops.push(op); }
       });
-
-      // Force cursor to start at beginning for empty content
-      if (!value || value === "<p><br></p>" || value.trim() === "") {
-        setTimeout(() => {
-          quill.setSelection(0, 0);
-          quill.format("align", false);
-        }, 100);
+      return new Delta(ops);
+    });
+    quill.on("text-change", () => {
+      const range = quill.getSelection();
+      if (range) {
+        const fmt = quill.getFormat(range);
+        if (fmt.align === "center" || fmt.align === "right") quill.format("align", false);
       }
+    });
+  }, []);
 
-      // Override any formatting that might center text
-      quill.on("text-change", () => {
-        const range = quill.getSelection();
-        if (range) {
-          const format = quill.getFormat(range);
-          if (format.align === "center" || format.align === "right") {
-            quill.format("align", false);
-          }
-        }
-      });
-    }
-  }, [value]);
-
-  // Mathematical symbols organized by category
+  // ── Symbol Library ────────────────────────────────────────────────
   const mathSymbols = {
-    basic: [
-      { symbol: "±", name: "Plus-minus" },
-      { symbol: "∓", name: "Minus-plus" },
-      { symbol: "×", name: "Multiplication" },
-      { symbol: "÷", name: "Division" },
-      { symbol: "√", name: "Square root" },
-      { symbol: "∛", name: "Cube root" },
-      { symbol: "∞", name: "Infinity" },
-      { symbol: "≈", name: "Approximately" },
-    ],
-    fractions: [
-      { symbol: "½", name: "One half" },
-      { symbol: "⅓", name: "One third" },
-      { symbol: "¼", name: "One quarter" },
-      { symbol: "¾", name: "Three quarters" },
-      { symbol: "⅕", name: "One fifth" },
-      { symbol: "⅖", name: "Two fifths" },
-      { symbol: "⅗", name: "Three fifths" },
-      { symbol: "⅘", name: "Four fifths" },
-    ],
-    powers: [
-      { symbol: "²", name: "Superscript 2" },
-      { symbol: "³", name: "Superscript 3" },
-      { symbol: "⁴", name: "Superscript 4" },
-      { symbol: "⁵", name: "Superscript 5" },
-      { symbol: "₁", name: "Subscript 1" },
-      { symbol: "₂", name: "Subscript 2" },
-      { symbol: "₃", name: "Subscript 3" },
-      { symbol: "₄", name: "Subscript 4" },
-    ],
-    greek: [
-      { symbol: "α", name: "Alpha" },
-      { symbol: "β", name: "Beta" },
-      { symbol: "γ", name: "Gamma" },
-      { symbol: "δ", name: "Delta" },
-      { symbol: "ε", name: "Epsilon" },
-      { symbol: "θ", name: "Theta" },
-      { symbol: "λ", name: "Lambda" },
-      { symbol: "μ", name: "Mu" },
-      { symbol: "π", name: "Pi" },
-      { symbol: "σ", name: "Sigma" },
-      { symbol: "φ", name: "Phi" },
-      { symbol: "ω", name: "Omega" },
-    ],
-    calculus: [
-      { symbol: "∫", name: "Integral" },
-      { symbol: "∬", name: "Double integral" },
-      { symbol: "∭", name: "Triple integral" },
-      { symbol: "∮", name: "Contour integral" },
-      { symbol: "∂", name: "Partial derivative" },
-      { symbol: "∇", name: "Nabla" },
-      { symbol: "∆", name: "Delta" },
-      { symbol: "∑", name: "Summation" },
-    ],
-    relations: [
-      { symbol: "=", name: "Equal" },
-      { symbol: "≠", name: "Not equal" },
-      { symbol: "≈", name: "Approximately" },
-      { symbol: "≡", name: "Equivalent" },
-      { symbol: "<", name: "Less than" },
-      { symbol: ">", name: "Greater than" },
-      { symbol: "≤", name: "Less than or equal" },
-      { symbol: "≥", name: "Greater than or equal" },
-      { symbol: "∝", name: "Proportional" },
-      { symbol: "∼", name: "Similar" },
-    ],
-    sets: [
-      { symbol: "∈", name: "Element of" },
-      { symbol: "∉", name: "Not element of" },
-      { symbol: "⊂", name: "Subset" },
-      { symbol: "⊃", name: "Superset" },
-      { symbol: "⊆", name: "Subset or equal" },
-      { symbol: "⊇", name: "Superset or equal" },
-      { symbol: "∪", name: "Union" },
-      { symbol: "∩", name: "Intersection" },
-      { symbol: "∅", name: "Empty set" },
-      { symbol: "ℕ", name: "Natural numbers" },
-      { symbol: "ℤ", name: "Integers" },
-      { symbol: "ℝ", name: "Real numbers" },
-    ],
-    geometry: [
-      { symbol: "°", name: "Degree" },
-      { symbol: "∠", name: "Angle" },
-      { symbol: "⊥", name: "Perpendicular" },
-      { symbol: "∥", name: "Parallel" },
-      { symbol: "△", name: "Triangle" },
-      { symbol: "□", name: "Square" },
-      { symbol: "○", name: "Circle" },
-      { symbol: "⌒", name: "Arc" },
-    ],
+    greek: {
+      label: "Greek", icon: "α",
+      symbols: [
+        { d: "α", v: "α", n: "Alpha" }, { d: "β", v: "β", n: "Beta" }, { d: "γ", v: "γ", n: "Gamma" },
+        { d: "δ", v: "δ", n: "Delta" }, { d: "ε", v: "ε", n: "Epsilon" }, { d: "ζ", v: "ζ", n: "Zeta" },
+        { d: "η", v: "η", n: "Eta" }, { d: "θ", v: "θ", n: "Theta" }, { d: "ι", v: "ι", n: "Iota" },
+        { d: "κ", v: "κ", n: "Kappa" }, { d: "λ", v: "λ", n: "Lambda" }, { d: "μ", v: "μ", n: "Mu" },
+        { d: "ν", v: "ν", n: "Nu" }, { d: "ξ", v: "ξ", n: "Xi" }, { d: "π", v: "π", n: "Pi" },
+        { d: "ρ", v: "ρ", n: "Rho" }, { d: "σ", v: "σ", n: "Sigma" }, { d: "τ", v: "τ", n: "Tau" },
+        { d: "υ", v: "υ", n: "Upsilon" }, { d: "φ", v: "φ", n: "Phi" }, { d: "χ", v: "χ", n: "Chi" },
+        { d: "ψ", v: "ψ", n: "Psi" }, { d: "ω", v: "ω", n: "Omega" },
+        { d: "Γ", v: "Γ", n: "Gamma (U)" }, { d: "Δ", v: "Δ", n: "Delta (U)" }, { d: "Θ", v: "Θ", n: "Theta (U)" },
+        { d: "Λ", v: "Λ", n: "Lambda (U)" }, { d: "Π", v: "Π", n: "Pi (U)" }, { d: "Σ", v: "Σ", n: "Sigma (U)" },
+        { d: "Φ", v: "Φ", n: "Phi (U)" }, { d: "Ψ", v: "Ψ", n: "Psi (U)" }, { d: "Ω", v: "Ω", n: "Omega (U)" },
+      ],
+    },
+    operators: {
+      label: "Operators", icon: "±",
+      symbols: [
+        { d: "±", v: "±", n: "Plus-minus" }, { d: "∓", v: "∓", n: "Minus-plus" },
+        { d: "×", v: "×", n: "Multiplication" }, { d: "÷", v: "÷", n: "Division" },
+        { d: "·", v: "·", n: "Dot product" }, { d: "∘", v: "∘", n: "Composition" },
+        { d: "⊕", v: "⊕", n: "Direct sum" }, { d: "⊗", v: "⊗", n: "Tensor product" },
+        { d: "∞", v: "∞", n: "Infinity" }, { d: "∝", v: "∝", n: "Proportional" },
+        { d: "∴", v: "∴", n: "Therefore" }, { d: "∵", v: "∵", n: "Because" },
+      ],
+    },
+    relations: {
+      label: "Relations", icon: "≤",
+      symbols: [
+        { d: "≠", v: "≠", n: "Not equal" }, { d: "≡", v: "≡", n: "Identical" },
+        { d: "≈", v: "≈", n: "Approximately" }, { d: "≅", v: "≅", n: "Congruent" },
+        { d: "∼", v: "∼", n: "Similar" }, { d: "≤", v: "≤", n: "Less or equal" },
+        { d: "≥", v: "≥", n: "Greater or equal" }, { d: "≪", v: "≪", n: "Much less" },
+        { d: "≫", v: "≫", n: "Much greater" }, { d: "∝", v: "∝", n: "Proportional" },
+      ],
+    },
+    calculus: {
+      label: "Calculus", icon: "∫",
+      symbols: [
+        { d: "∫", v: "∫", n: "Integral" }, { d: "∬", v: "∬", n: "Double integral" },
+        { d: "∭", v: "∭", n: "Triple integral" }, { d: "∮", v: "∮", n: "Contour integral" },
+        { d: "∂", v: "∂", n: "Partial derivative" }, { d: "∇", v: "∇", n: "Nabla" },
+        { d: "∆", v: "∆", n: "Laplacian" }, { d: "∑", v: "∑", n: "Summation" },
+        { d: "∏", v: "∏", n: "Product" },
+      ],
+    },
+    sets: {
+      label: "Sets & Logic", icon: "∈",
+      symbols: [
+        { d: "∈", v: "∈", n: "Element of" }, { d: "∉", v: "∉", n: "Not element of" },
+        { d: "⊂", v: "⊂", n: "Subset" }, { d: "⊃", v: "⊃", n: "Superset" },
+        { d: "∪", v: "∪", n: "Union" }, { d: "∩", v: "∩", n: "Intersection" },
+        { d: "∅", v: "∅", n: "Empty set" }, { d: "ℕ", v: "ℕ", n: "Naturals" },
+        { d: "ℤ", v: "ℤ", n: "Integers" }, { d: "ℝ", v: "ℝ", n: "Reals" },
+        { d: "ℂ", v: "ℂ", n: "Complex" }, { d: "∀", v: "∀", n: "For all" },
+        { d: "∃", v: "∃", n: "There exists" }, { d: "¬", v: "¬", n: "NOT" },
+        { d: "∧", v: "∧", n: "AND" }, { d: "∨", v: "∨", n: "OR" },
+      ],
+    },
+    geometry: {
+      label: "Geometry", icon: "∠",
+      symbols: [
+        { d: "°", v: "°", n: "Degree" }, { d: "∠", v: "∠", n: "Angle" },
+        { d: "⊥", v: "⊥", n: "Perpendicular" }, { d: "∥", v: "∥", n: "Parallel" },
+        { d: "△", v: "△", n: "Triangle" }, { d: "→", v: "→", n: "Arrow right" },
+        { d: "←", v: "←", n: "Arrow left" }, { d: "↔", v: "↔", n: "Bidirectional" },
+        { d: "⇒", v: "⇒", n: "Implies" }, { d: "⇔", v: "⇔", n: "Iff" },
+      ],
+    },
   };
 
-  const insertSymbol = (symbol) => {
+  // LaTeX templates — these will render as actual KaTeX, not raw text
+  const latexTemplates = [
+    // Structure / brackets
+    { label: "a/b", latex: "\\frac{a}{b}", name: "Fraction" },
+    { label: "√x", latex: "\\sqrt{\\square}", name: "Square Root" },
+    { label: "ⁿ√x", latex: "\\sqrt[n]{\\square}", name: "Nth Root" },
+    { label: "x²", latex: "x^{2}", name: "Power / Superscript" },
+    { label: "xₙ", latex: "x_{n}", name: "Subscript" },
+    { label: "x^n", latex: "x^{n}", name: "General Power" },
+    { label: "|x|", latex: "\\left|\\square\\right|", name: "Absolute Value" },
+    { label: "‖x‖", latex: "\\left\\|\\square\\right\\|", name: "Norm" },
+    // Derivatives
+    { label: "d/dx", latex: "\\frac{d}{dx}\\,\\square", name: "Derivative (d/dx)" },
+    { label: "d²/dx²", latex: "\\frac{d^2}{dx^2}\\,\\square", name: "2nd Derivative" },
+    { label: "∂/∂x", latex: "\\frac{\\partial}{\\partial x}\\,\\square", name: "Partial Derivative" },
+    { label: "∂²/∂x²", latex: "\\frac{\\partial^2}{\\partial x^2}\\,\\square", name: "2nd Partial" },
+    // Integrals
+    { label: "∫dx", latex: "\\int \\square\\,dx", name: "Indefinite Integral" },
+    { label: "∫_a^b dx", latex: "\\int_{a}^{b} \\square\\,dx", name: "Definite Integral (limits)" },
+    { label: "∬dA", latex: "\\iint_{D} \\square\\,dA", name: "Double Integral" },
+    { label: "∭dV", latex: "\\iiint_{V} \\square\\,dV", name: "Triple Integral" },
+    { label: "∮dr", latex: "\\oint_{C} \\square\\,dr", name: "Line / Contour Integral" },
+    // Sums & products
+    { label: "∑", latex: "\\sum_{i=1}^{n} \\square", name: "Summation" },
+    { label: "∏", latex: "\\prod_{i=1}^{n} \\square", name: "Product" },
+    { label: "lim", latex: "\\lim_{x \\to \\infty} \\square", name: "Limit" },
+    { label: "lim₀", latex: "\\lim_{x \\to 0} \\square", name: "Limit → 0" },
+    // Functions
+    { label: "eˣ", latex: "e^{\\square}", name: "Exponential" },
+    { label: "ln", latex: "\\ln(\\square)", name: "Natural Log" },
+    { label: "log", latex: "\\log_{a}(\\square)", name: "Logarithm base a" },
+    { label: "sin", latex: "\\sin(\\square)", name: "Sine" },
+    { label: "cos", latex: "\\cos(\\square)", name: "Cosine" },
+    { label: "tan", latex: "\\tan(\\square)", name: "Tangent" },
+    // Matrix / misc
+    { label: "matrix", latex: "\\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix}", name: "2×2 Matrix" },
+    { label: "x̄", latex: "\\bar{\\square}", name: "Bar / Mean" },
+    { label: "vec", latex: "\\vec{\\square}", name: "Vector arrow" },
+    { label: "hat", latex: "\\hat{\\square}", name: "Hat / Unit vector" },
+    { label: "π", latex: "\\pi", name: "Pi constant" },
+    { label: "∞", latex: "\\infty", name: "Infinity" },
+    { label: "±", latex: "\\pm", name: "Plus-minus" },
+    { label: "≈", latex: "\\approx", name: "Approximately" },
+    { label: "≠", latex: "\\neq", name: "Not equal" },
+  ];
+
+  // Insert plain Unicode symbol into Quill
+  const insertSymbol = (text) => {
     const quill = quillRef.current?.getEditor();
-    if (quill) {
-      const range = quill.getSelection() || { index: 0, length: 0 };
-      quill.insertText(range.index, symbol);
-      quill.setSelection(range.index + symbol.length);
-      // Ensure left alignment after inserting symbol
-      quill.format("align", false);
+    if (!quill) return;
+    const range = quill.getSelection() || { index: quill.getLength() - 1, length: 0 };
+    quill.insertText(range.index, text);
+    quill.setSelection(range.index + text.length);
+  };
+
+  // Insert a rendered KaTeX blot into Quill (NOT raw text)
+  const insertMathBlot = (latex) => {
+    const quill = quillRef.current?.getEditor();
+    if (!quill) return;
+    const range = quill.getSelection() || { index: quill.getLength() - 1, length: 0 };
+    quill.insertEmbed(range.index, "mathformula", latex, "user");
+    quill.insertText(range.index + 1, " "); // space after formula
+    quill.setSelection(range.index + 2);
+  };
+
+  const insertCustomLatex = () => {
+    if (latexInput.trim()) {
+      insertMathBlot(latexInput.trim());
+      setLatexInput("");
     }
   };
 
   const modules = {
     toolbar: [
-      [{ header: [1, 2, 3, 4, 5, 6, false] }],
+      [{ header: [1, 2, 3, false] }],
       ["bold", "italic", "underline", "strike"],
       [{ script: "sub" }, { script: "super" }],
       [{ list: "ordered" }, { list: "bullet" }],
-      [{ indent: "-1" }, { indent: "+1" }],
-      ["image"],
-      ["clean"],
+      ["image", "clean"],
     ],
   };
 
-  const formats = [
-    "header",
-    "bold",
-    "italic",
-    "underline",
-    "strike",
-    "script",
-    "list",
-    "bullet",
-    "indent",
-    "image",
-  ];
+  const formats = ["header", "bold", "italic", "underline", "strike", "script", "list", "bullet", "indent", "image", "mathformula"];
 
   return (
     <div className={`relative ${className}`}>
-      {/* Math Symbol Toggle Button */}
-      <div className="mb-3 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-t-lg">
-        <button
-          type="button"
-          onClick={() => setShowMathPanel(!showMathPanel)}
-          className={`px-6 py-3 text-sm font-semibold rounded-lg transition-all duration-200 border-2 ${
-            showMathPanel
-              ? "bg-blue-600 text-white border-blue-700 shadow-md"
-              : "bg-white text-blue-700 border-blue-300 hover:bg-blue-50"
-          }`}
-        >
-          {showMathPanel ? "🔽 Hide Math Symbols" : "🔼 Show Math Symbols"}
+      {/* Toolbar */}
+      <div className="mb-3 bg-emerald-50 border border-emerald-200 rounded-t-lg p-3 flex flex-wrap items-center gap-2">
+        <button type="button" onClick={() => { setShowMathPanel(!showMathPanel); setShowLatexBuilder(false); }}
+          className={`px-4 py-2 text-sm font-semibold rounded-lg border-2 transition-all ${showMathPanel ? "bg-emerald-600 text-white border-emerald-700" : "bg-white text-emerald-700 border-emerald-300 hover:bg-emerald-50"}`}>
+          {showMathPanel ? "🔽 Symbols" : "Σ Symbols"}
         </button>
-        {showMathPanel && (
-          <p className="text-xs text-blue-600 mt-2">
-            Click any symbol below to insert it into your text
-          </p>
-        )}
+        <button type="button" onClick={() => { setShowLatexBuilder(!showLatexBuilder); setShowMathPanel(false); }}
+          className={`px-4 py-2 text-sm font-semibold rounded-lg border-2 transition-all ${showLatexBuilder ? "bg-violet-600 text-white border-violet-700" : "bg-white text-violet-700 border-violet-300 hover:bg-violet-50"}`}>
+          {showLatexBuilder ? "🔽 LaTeX" : "∫ LaTeX"}
+        </button>
       </div>
 
-      {/* Math Symbol Panel */}
+      {/* Symbol Panel */}
       {showMathPanel && (
-        <div className="mb-4 bg-white border-2 border-blue-300 rounded-lg shadow-lg p-4 max-h-80 overflow-y-auto">
-          <div className="space-y-4">
-            {Object.entries(mathSymbols).map(([category, symbols]) => (
-              <div key={category}>
-                <h4 className="text-sm font-semibold text-gray-800 mb-3 capitalize bg-gradient-to-r from-gray-100 to-gray-200 px-3 py-2 rounded-md border">
-                  {category} Symbols
-                </h4>
-                <div className="grid grid-cols-6 sm:grid-cols-8 lg:grid-cols-10 gap-2">
-                  {symbols.map((item, index) => (
-                    <button
-                      key={index}
-                      onClick={() => insertSymbol(item.symbol)}
-                      className="p-3 text-lg font-mono border-2 border-gray-200 rounded-md hover:bg-blue-100 hover:border-blue-400 transition-all duration-150 active:scale-95"
-                      title={item.name}
-                    >
-                      {item.symbol}
-                    </button>
-                  ))}
-                </div>
-              </div>
+        <div className="mb-4 bg-white border-2 border-emerald-200 rounded-lg shadow overflow-hidden">
+          <div className="flex overflow-x-auto bg-gray-50 border-b border-gray-200">
+            {Object.keys(mathSymbols).map((key) => (
+              <button key={key} type="button" onClick={() => setActiveCategory(key)}
+                className={`px-3 py-2.5 text-xs font-semibold whitespace-nowrap transition-all border-b-2 ${activeCategory === key ? "border-emerald-500 text-emerald-700 bg-white" : "border-transparent text-gray-500 hover:text-gray-800 hover:bg-gray-100"}`}>
+                <span className="mr-1">{mathSymbols[key].icon}</span>{mathSymbols[key].label}
+              </button>
             ))}
+          </div>
+          <div className="p-3 max-h-44 overflow-y-auto">
+            <div className="grid grid-cols-10 sm:grid-cols-12 gap-1">
+              {mathSymbols[activeCategory].symbols.map((item, i) => (
+                <button key={i} type="button" onClick={() => insertSymbol(item.v)} title={item.n}
+                  className="p-2 text-base font-serif border border-gray-200 rounded hover:bg-emerald-50 hover:border-emerald-400 hover:text-emerald-700 transition-all active:scale-95 text-center leading-none">
+                  {item.d}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}
 
-      {/* ReactQuill Editor with Fixed Styles */}
+      {/* LaTeX Builder Panel */}
+      {showLatexBuilder && (
+        <div className="mb-4 bg-white border-2 border-violet-200 rounded-lg shadow overflow-hidden">
+          {/* Templates */}
+          <div className="p-3 bg-violet-50 border-b border-violet-200">
+            <p className="text-xs font-semibold text-violet-700 mb-1">Click a template to load it below → edit → Insert</p>
+            <p className="text-xs text-violet-500 mb-2">Replace <code className="bg-violet-100 px-1 rounded">\square</code>, <code className="bg-violet-100 px-1 rounded">a</code>, <code className="bg-violet-100 px-1 rounded">b</code> with your values in the box below</p>
+            <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
+              {latexTemplates.map((t, i) => (
+                <button key={i} type="button"
+                  onClick={() => {
+                    setLatexInput(t.latex);
+                    // ensure builder panel is shown
+                  }}
+                  title={`Load: ${t.name}`}
+                  className="flex items-center gap-1 px-2.5 py-1.5 bg-white border border-violet-300 rounded text-xs text-violet-700 hover:bg-violet-100 hover:border-violet-500 transition-all active:scale-95">
+                  <span className="font-mono">{t.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Custom LaTeX input */}
+          <div className="p-4">
+            <p className="text-xs font-semibold text-gray-600 mb-2">Edit formula below, then click Insert ↓</p>
+            <div className="flex gap-2">
+              <input type="text" value={latexInput}
+                onChange={(e) => setLatexInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); insertCustomLatex(); } }}
+                placeholder="e.g. \frac{a}{b}  or  x^{2n}  or  \int_0^\infty"
+                className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-violet-400" />
+              <button type="button" onClick={insertCustomLatex} disabled={!latexInput.trim()}
+                className="px-4 py-2 bg-violet-600 text-white rounded-lg text-sm font-semibold hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed transition">
+                Insert
+              </button>
+            </div>
+            {/* Live preview */}
+            {latexInput.trim() && (
+              <div className="mt-3 p-3 bg-gray-50 border border-gray-200 rounded-lg flex items-center gap-3">
+                <span className="text-xs text-gray-500 shrink-0">Preview:</span>
+                <div className="text-lg overflow-x-auto">
+                  {(() => { try { return <InlineMath math={latexInput} />; } catch { return <span className="text-red-500 text-sm">Invalid LaTeX</span>; } })()}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Quill Editor */}
       <div className="border-2 border-gray-300 rounded-lg overflow-hidden bg-white">
-        <ReactQuill
-          ref={quillRef}
-          value={value}
-          onChange={(newValue) => {
-            onChange(newValue);
-            // Force left alignment on every change
-            setTimeout(() => {
-              const quill = quillRef.current?.getEditor();
-              if (quill) {
-                const range = quill.getSelection();
-                if (range) {
-                  quill.formatText(0, quill.getLength(), "align", false);
-                }
-              }
-            }, 10);
-          }}
-          modules={modules}
-          formats={formats}
-          placeholder={placeholder}
-          className="left-aligned-editor"
-          theme="snow"
-        />
+        <ReactQuill ref={quillRef} value={value}
+          onChange={(v) => { onChange(v); setTimeout(() => { const q = quillRef.current?.getEditor(); if (q) { const r = q.getSelection(); if (r) q.formatText(0, q.getLength(), "align", false); } }, 10); }}
+          modules={modules} formats={formats} placeholder={placeholder}
+          className="left-aligned-editor" theme="snow" />
       </div>
 
-      {/* Enhanced Custom Styles for Left Alignment and Scrollable Dropdowns */}
-      <style jsx global>{`
-        /* Force left alignment for all text */
-        .left-aligned-editor .ql-editor {
-          text-align: left !important;
-          direction: ltr !important;
+      <style>{`
+        /* Math formula blot styling */
+        .math-formula-blot {
+          display: inline-block;
+          vertical-align: middle;
+          padding: 1px 4px;
+          margin: 0 2px;
+          background: #f0fdf4;
+          border: 1px solid #a7f3d0;
+          border-radius: 4px;
+          cursor: default;
+          user-select: none;
         }
-
-        .left-aligned-editor .ql-editor p,
-        .left-aligned-editor .ql-editor h1,
-        .left-aligned-editor .ql-editor h2,
-        .left-aligned-editor .ql-editor h3,
-        .left-aligned-editor .ql-editor h4,
-        .left-aligned-editor .ql-editor h5,
-        .left-aligned-editor .ql-editor h6,
-        .left-aligned-editor .ql-editor div,
-        .left-aligned-editor .ql-editor span {
-          text-align: left !important;
-          direction: ltr !important;
-        }
-
-        /* Toolbar Styling */
-        .left-aligned-editor .ql-toolbar {
-          border: none !important;
-          border-bottom: 1px solid #e5e7eb !important;
-          background-color: #f8fafc !important;
-          padding: 12px !important;
-          display: flex !important;
-          flex-wrap: wrap !important;
-          gap: 8px !important;
-          position: relative !important;
-          overflow: visible !important;
-        }
-
-        .left-aligned-editor .ql-toolbar .ql-formats {
-          margin: 0 !important;
-          display: flex !important;
-          align-items: center !important;
-          gap: 4px !important;
-        }
-
-        /* Fix dropdown positioning and scrolling */
-        .left-aligned-editor .ql-toolbar .ql-picker {
-          position: relative !important;
-          color: #374151 !important;
-        }
-
-        .left-aligned-editor .ql-toolbar .ql-picker-label {
-          border: 1px solid #d1d5db !important;
-          border-radius: 6px !important;
-          padding: 6px 12px !important;
-          background: white !important;
-          cursor: pointer !important;
-          min-width: 80px !important;
-          text-align: left !important;
-        }
-
-        .left-aligned-editor .ql-toolbar .ql-picker-label:hover {
-          background-color: #f3f4f6 !important;
-          border-color: #9ca3af !important;
-        }
-
-        .left-aligned-editor
-          .ql-toolbar
-          .ql-picker.ql-expanded
-          .ql-picker-label {
-          border-color: #3b82f6 !important;
-          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
-        }
-
-        /* Enhanced dropdown options with proper scrolling */
-        .left-aligned-editor .ql-toolbar .ql-picker-options {
-          position: absolute !important;
-          top: 100% !important;
-          left: 0 !important;
-          right: 0 !important;
-          z-index: 9999 !important;
-          background: white !important;
-          border: 2px solid #e5e7eb !important;
-          border-radius: 8px !important;
-          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
-            0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
-          max-height: 300px !important;
-          overflow-y: auto !important;
-          min-width: 150px !important;
-          margin-top: 4px !important;
-        }
-
-        .left-aligned-editor .ql-toolbar .ql-picker-item {
-          padding: 12px 16px !important;
-          border-bottom: 1px solid #f3f4f6 !important;
-          cursor: pointer !important;
-          transition: background-color 0.15s ease !important;
-          text-align: left !important;
-          font-size: 14px !important;
-          color: #374151 !important;
-        }
-
-        .left-aligned-editor .ql-toolbar .ql-picker-item:last-child {
-          border-bottom: none !important;
-        }
-
-        .left-aligned-editor .ql-toolbar .ql-picker-item:hover {
-          background-color: #f3f4f6 !important;
-        }
-
-        .left-aligned-editor .ql-toolbar .ql-picker-item.ql-selected {
-          background-color: #dbeafe !important;
-          color: #1d4ed8 !important;
-          font-weight: 500 !important;
-        }
-
-        /* Header options styling */
-        .left-aligned-editor .ql-toolbar .ql-picker-item[data-value="1"] {
-          font-size: 18px !important; /* Reduced from 24px so it fits */
-          font-weight: bold !important;
-        }
-
-        .left-aligned-editor .ql-toolbar .ql-picker-item[data-value="2"] {
-          font-size: 16px !important; /* Reduced from 20px */
-          font-weight: bold !important;
-        }
-
-        .left-aligned-editor .ql-toolbar .ql-picker-item[data-value="3"] {
-          font-size: 15px !important; /* Reduced from 18px */
-          font-weight: bold !important;
-        }
-
-        .left-aligned-editor .ql-toolbar .ql-picker-item[data-value="4"] {
-          font-size: 16px !important;
-          font-weight: bold !important;
-        }
-
-        .left-aligned-editor .ql-toolbar .ql-picker-item[data-value="5"] {
-          font-size: 14px !important;
-          font-weight: bold !important;
-        }
-
-        .left-aligned-editor .ql-toolbar .ql-picker-item[data-value="6"] {
-          font-size: 12px !important;
-          font-weight: bold !important;
-        }
-
-        /* Container and Editor Styling */
-        .left-aligned-editor .ql-container {
-          border: none !important;
-          font-size: 16px !important;
-        }
-
-        .left-aligned-editor .ql-editor {
-          min-height: 120px !important;
-          font-size: 16px !important;
-          line-height: 1.6 !important;
-          padding: 16px !important;
-          text-align: left !important;
-          direction: ltr !important;
-        }
-
-        .left-aligned-editor .ql-editor p {
-          margin-bottom: 8px !important;
-          text-align: left !important;
-        }
-
-        .left-aligned-editor .ql-editor.ql-blank::before {
-          font-style: italic !important;
-          color: #9ca3af !important;
-          font-size: 16px !important;
-          left: 16px !important;
-          text-align: left !important;
-        }
-
-        /* Ensure tooltips and other elements have proper z-index */
-        .left-aligned-editor .ql-snow .ql-tooltip {
-          z-index: 10000 !important;
-        }
-
-        /* Override any center alignment */
-        .left-aligned-editor .ql-align-center,
-        .left-aligned-editor .ql-align-right,
-        .left-aligned-editor .ql-align-justify {
-          text-align: left !important;
-        }
-
-        /* Scrollbar styling for dropdown */
-        .left-aligned-editor .ql-picker-options::-webkit-scrollbar {
-          width: 6px !important;
-        }
-
-        .left-aligned-editor .ql-picker-options::-webkit-scrollbar-track {
-          background: #f1f5f9 !important;
-          border-radius: 3px !important;
-        }
-
-        .left-aligned-editor .ql-picker-options::-webkit-scrollbar-thumb {
-          background: #cbd5e1 !important;
-          border-radius: 3px !important;
-        }
-
-        .left-aligned-editor .ql-picker-options::-webkit-scrollbar-thumb:hover {
-          background: #94a3b8 !important;
-        }
+        .math-formula-blot:hover { background: #d1fae5; border-color: #10b981; }
+        .left-aligned-editor .ql-editor { text-align: left !important; direction: ltr !important; min-height: 120px !important; font-size: 16px !important; line-height: 1.6 !important; padding: 16px !important; }
+        .left-aligned-editor .ql-toolbar { border: none !important; border-bottom: 1px solid #e5e7eb !important; background-color: #f8fafc !important; padding: 10px !important; display: flex !important; flex-wrap: wrap !important; gap: 6px !important; position: relative !important; overflow: visible !important; }
+        .left-aligned-editor .ql-toolbar .ql-picker-options { position: absolute !important; top: 100% !important; left: 0 !important; z-index: 9999 !important; background: white !important; border: 2px solid #e5e7eb !important; border-radius: 8px !important; box-shadow: 0 10px 25px -5px rgba(0,0,0,.1) !important; max-height: 280px !important; overflow-y: auto !important; min-width: 140px !important; margin-top: 4px !important; }
+        .left-aligned-editor .ql-toolbar .ql-picker-item { padding: 10px 14px !important; cursor: pointer !important; font-size: 13px !important; color: #374151 !important; }
+        .left-aligned-editor .ql-toolbar .ql-picker-item:hover { background: #f0fdf4 !important; }
+        .left-aligned-editor .ql-container { border: none !important; font-size: 16px !important; }
+        .left-aligned-editor .ql-editor.ql-blank::before { font-style: italic !important; color: #9ca3af !important; left: 16px !important; }
+        .left-aligned-editor .ql-snow .ql-tooltip { z-index: 10000 !important; }
       `}</style>
     </div>
   );
