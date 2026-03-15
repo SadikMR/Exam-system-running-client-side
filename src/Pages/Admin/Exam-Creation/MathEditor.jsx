@@ -141,13 +141,13 @@ const MathEditor = ({ value, onChange, placeholder, className = "", maxImageW = 
     });
   }, []);
 
-  // ── Make table cells editable and add resize + drag handle after Quill renders them ──
+  // ── Make table cells editable, add move handle, col-resize, and DELETE ──
   const setupTableInteractivity = useCallback((container) => {
     if (!container) return;
     const blots = container.querySelectorAll(".raw-table-blot");
 
     blots.forEach((blot) => {
-      if (blot.dataset.interactive) return; // already set up
+      if (blot.dataset.interactive) return;
       blot.dataset.interactive = "1";
 
       // ── 1. Make cells editable ──────────────────────────────────────
@@ -155,138 +155,140 @@ const MathEditor = ({ value, onChange, placeholder, className = "", maxImageW = 
         cell.setAttribute("contenteditable", "true");
         cell.style.position = "relative";
         cell.style.minWidth = "60px";
-        // Prevent Quill from swallowing keyboard events inside cells
         cell.addEventListener("keydown", e => e.stopPropagation());
         cell.addEventListener("mousedown", e => e.stopPropagation());
       });
 
-      // ── 2. Drag-to-move handle (inside the blot, top-left overlay) ─
-      //    Positioned INSIDE so it's never clipped by the editor overflow.
       blot.style.position = "relative";
+
+      // ── 2. Toolbar row: Move + Delete ──────────────────────────────
+      const toolbar = document.createElement("div");
+      toolbar.style.cssText = "position:absolute;top:4px;left:4px;display:flex;gap:4px;z-index:20;pointer-events:all;opacity:0;transition:opacity 0.18s;";
+      blot.addEventListener("mouseenter", () => { toolbar.style.opacity = "1"; });
+      blot.addEventListener("mouseleave", () => { toolbar.style.opacity = "0"; });
 
       const moveHandle = document.createElement("div");
       moveHandle.className = "table-move-handle";
       moveHandle.title = "Drag to move table";
       moveHandle.textContent = "⠿ Move";
-      // Pinned INSIDE the blot at top-left — never clipped by editor overflow
-      moveHandle.style.cssText = [
-        "position:absolute", "top:4px", "left:4px",
-        "padding:2px 6px",
-        "background:#1f2937", "color:#f9fafb",
-        "font-size:11px", "line-height:16px",
-        "border-radius:4px",
-        "cursor:grab", "user-select:none", "z-index:20",
-        "display:flex", "align-items:center", "gap:3px",
-        "opacity:0.85",
-        "pointer-events:all",
-      ].join(";");
+      moveHandle.style.cssText = "padding:2px 7px;background:#1f2937;color:#f9fafb;font-size:11px;line-height:16px;border-radius:4px;cursor:grab;user-select:none;opacity:0.88;";
 
-      // Insert the handle as FIRST child inside the blot
-      // (before the <table>), so it overlays on top
-      blot.prepend(moveHandle);
+      const delBtn = document.createElement("div");
+      delBtn.title = "Remove table";
+      delBtn.textContent = "✕ Delete";
+      delBtn.style.cssText = "padding:2px 7px;background:#dc2626;color:#fff;font-size:11px;line-height:16px;border-radius:4px;cursor:pointer;user-select:none;opacity:0.88;";
+      delBtn.addEventListener("mousedown", (e) => { e.preventDefault(); e.stopPropagation(); });
+      delBtn.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); blot.remove(); });
+      delBtn.addEventListener("mouseover", () => { delBtn.style.background = "#b91c1c"; });
+      delBtn.addEventListener("mouseout",  () => { delBtn.style.background = "#dc2626"; });
+
+      toolbar.appendChild(moveHandle);
+      toolbar.appendChild(delBtn);
+      blot.prepend(toolbar);
 
       // ── Drag-to-move logic ─────────────────────────────────────────
       const startDrag = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-
-        // Ensure the ql-editor is the offset parent
+        e.preventDefault(); e.stopPropagation();
         const editorEl = blot.closest(".ql-editor") || blot.parentElement;
         editorEl.style.position = "relative";
-
-        const editorRect = editorEl.getBoundingClientRect();
-        const blotRect   = blot.getBoundingClientRect();
-
-        // Capture current position relative to editor (accounting for scroll)
-        const initLeft = blotRect.left - editorRect.left + editorEl.scrollLeft;
-        const initTop  = blotRect.top  - editorRect.top  + editorEl.scrollTop;
-
-        // Lift the blot out of normal flow → absolute positioning
+        const eR = editorEl.getBoundingClientRect();
+        const bR = blot.getBoundingClientRect();
+        const iL = bR.left - eR.left + editorEl.scrollLeft;
+        const iT = bR.top  - eR.top  + editorEl.scrollTop;
         blot.style.position = "absolute";
-        blot.style.left   = initLeft + "px";
-        blot.style.top    = initTop  + "px";
-        blot.style.width  = blotRect.width + "px";
-        blot.style.zIndex = "50";
-        blot.style.boxShadow = "0 4px 16px rgba(0,0,0,0.18)";
+        blot.style.left = iL + "px"; blot.style.top = iT + "px";
+        blot.style.width = bR.width + "px";
+        blot.style.zIndex = "50"; blot.style.boxShadow = "0 4px 16px rgba(0,0,0,0.18)";
         moveHandle.style.cursor = "grabbing";
-
-        const startX = e.clientX;
-        const startY = e.clientY;
-
-        const onMove = (me) => {
-          const dx = me.clientX - startX;
-          const dy = me.clientY - startY;
-          blot.style.left = (initLeft + dx) + "px";
-          blot.style.top  = (initTop  + dy) + "px";
-        };
-        const onUp = () => {
-          moveHandle.style.cursor = "grab";
-          blot.style.zIndex = "1";
-          blot.style.boxShadow = "";
-          document.removeEventListener("mousemove", onMove);
-          document.removeEventListener("mouseup",   onUp);
-        };
-        document.addEventListener("mousemove", onMove);
-        document.addEventListener("mouseup",   onUp);
+        const sx = e.clientX, sy = e.clientY;
+        const mv = (me) => { blot.style.left=(iL+me.clientX-sx)+"px"; blot.style.top=(iT+me.clientY-sy)+"px"; };
+        const up = () => { moveHandle.style.cursor="grab"; blot.style.zIndex="1"; blot.style.boxShadow=""; document.removeEventListener("mousemove",mv); document.removeEventListener("mouseup",up); };
+        document.addEventListener("mousemove", mv);
+        document.addEventListener("mouseup", up);
       };
-
       moveHandle.addEventListener("mousedown", startDrag);
 
-      // ── 3. Add column resize handles ───────────────────────────────
-      const rows = blot.querySelectorAll("tr");
-      rows.forEach(row => {
+      // ── 3. Column resize handles ───────────────────────────────────
+      blot.querySelectorAll("tr").forEach(row => {
         const cells = row.querySelectorAll("td, th");
         cells.forEach((cell, i) => {
-          if (i === cells.length - 1) return; // no handle after last cell
-
+          if (i === cells.length - 1) return;
           const resizer = document.createElement("div");
           resizer.className = "col-resizer";
-          resizer.style.cssText = [
-            "position:absolute", "right:-3px", "top:0",
-            "width:6px", "height:100%",
-            "cursor:col-resize",
-            "z-index:5",
-            "background:transparent",
-            "user-select:none",
-          ].join(";");
-
+          resizer.style.cssText = "position:absolute;right:-3px;top:0;width:6px;height:100%;cursor:col-resize;z-index:5;background:transparent;user-select:none;";
           resizer.addEventListener("mousedown", (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            const startX = e.clientX;
-            const startW = cell.offsetWidth;
-            const nextCell = cells[i + 1];
-            const nextW = nextCell.offsetWidth;
-
-            const onMove = (me) => {
-              const dx = me.clientX - startX;
-              const newW = Math.max(40, startW + dx);
-              const newNext = Math.max(40, nextW - dx);
-              cell.style.width = newW + "px";
-              nextCell.style.width = newNext + "px";
-            };
-            const onUp = () => {
-              document.removeEventListener("mousemove", onMove);
-              document.removeEventListener("mouseup", onUp);
-            };
-            document.addEventListener("mousemove", onMove);
-            document.addEventListener("mouseup", onUp);
+            e.preventDefault(); e.stopPropagation();
+            const sx = e.clientX, sw = cell.offsetWidth, nw = cells[i+1].offsetWidth;
+            const mv = (me) => { const dx=me.clientX-sx; cell.style.width=Math.max(40,sw+dx)+"px"; cells[i+1].style.width=Math.max(40,nw-dx)+"px"; };
+            const up = () => { document.removeEventListener("mousemove",mv); document.removeEventListener("mouseup",up); };
+            document.addEventListener("mousemove", mv); document.addEventListener("mouseup", up);
           });
-
-          resizer.addEventListener("mouseover", () => {
-            resizer.style.background = "rgba(16,185,129,0.5)";
-          });
-          resizer.addEventListener("mouseout", () => {
-            resizer.style.background = "transparent";
-          });
-
+          resizer.addEventListener("mouseover", () => { resizer.style.background="rgba(16,185,129,0.5)"; });
+          resizer.addEventListener("mouseout",  () => { resizer.style.background="transparent"; });
           cell.appendChild(resizer);
+        });
+      });
+
+      // ── 4. Table-level resize handles (8 — corners + edges) ───────
+      const TABLE_HANDLES = [
+        { id:"nw", style:"top:-5px;left:-5px",                              cursor:"nw-resize" },
+        { id:"ne", style:"top:-5px;right:-5px",                             cursor:"ne-resize" },
+        { id:"se", style:"bottom:-5px;right:-5px",                          cursor:"se-resize" },
+        { id:"sw", style:"bottom:-5px;left:-5px",                           cursor:"sw-resize" },
+        { id:"n",  style:"top:-5px;left:50%;transform:translateX(-50%)",    cursor:"n-resize"  },
+        { id:"s",  style:"bottom:-5px;left:50%;transform:translateX(-50%)", cursor:"s-resize"  },
+        { id:"e",  style:"right:-5px;top:50%;transform:translateY(-50%)",   cursor:"e-resize"  },
+        { id:"w",  style:"left:-5px;top:50%;transform:translateY(-50%)",    cursor:"w-resize"  },
+      ];
+
+      TABLE_HANDLES.forEach(({ id, style, cursor }) => {
+        const h = document.createElement("div");
+        h.style.cssText = `position:absolute;${style};width:10px;height:10px;background:#10b981;border:2px solid #fff;border-radius:2px;cursor:${cursor};z-index:22;user-select:none;opacity:0;transition:opacity 0.15s;`;
+        blot.appendChild(h);
+
+        blot.addEventListener("mouseenter", () => { h.style.opacity = "1"; });
+        blot.addEventListener("mouseleave", () => { h.style.opacity = "0"; });
+
+        h.addEventListener("mousedown", (e) => {
+          e.preventDefault(); e.stopPropagation();
+          // Make sure blot is absolutely positioned so width/height change is visual
+          if (blot.style.position !== "absolute") {
+            const editorEl = blot.closest(".ql-editor") || blot.parentElement;
+            editorEl.style.position = "relative";
+            const eR = editorEl.getBoundingClientRect();
+            const bR = blot.getBoundingClientRect();
+            blot.style.position = "absolute";
+            blot.style.left = (bR.left - eR.left + editorEl.scrollLeft) + "px";
+            blot.style.top  = (bR.top  - eR.top  + editorEl.scrollTop)  + "px";
+          }
+          const startX = e.clientX, startY = e.clientY;
+          const startW = blot.offsetWidth, startH = blot.offsetHeight;
+          const startL = blot.offsetLeft,  startT = blot.offsetTop;
+
+          const mv = (me) => {
+            const dx = me.clientX - startX;
+            const dy = me.clientY - startY;
+            let newW = startW, newH = startH, newL = startL, newT = startT;
+
+            if (id.includes("e"))  newW = Math.max(80, startW + dx);
+            if (id.includes("s"))  newH = Math.max(40, startH + dy);
+            if (id.includes("w")) { newW = Math.max(80, startW - dx); newL = startL + startW - newW; }
+            if (id.includes("n")) { newH = Math.max(40, startH - dy); newT = startT + startH - newH; }
+
+            blot.style.width  = newW + "px";
+            blot.style.height = newH + "px";
+            if (id.includes("w")) blot.style.left = newL + "px";
+            if (id.includes("n")) blot.style.top  = newT + "px";
+          };
+          const up = () => { document.removeEventListener("mousemove",mv); document.removeEventListener("mouseup",up); };
+          document.addEventListener("mousemove", mv);
+          document.addEventListener("mouseup", up);
         });
       });
     });
   }, []);
 
-  // ── Move + resize handles for inserted images ─────────────────────────────
+  // ── Move + 8-handle resize + delete for inserted images ───────────────────
   const setupImageInteractivity = useCallback((container) => {
     if (!container) return;
     container.querySelectorAll(".raw-image-blot").forEach((blot) => {
@@ -298,57 +300,103 @@ const MathEditor = ({ value, onChange, placeholder, className = "", maxImageW = 
       const img = blot.querySelector("img");
       if (!img) return;
 
-      // ── Move handle ──────────────────────────────────────────────────
+      // ── Toolbar (move + delete) ──────────────────────────────────────
+      const toolbar = document.createElement("div");
+      toolbar.style.cssText = "position:absolute;top:4px;left:4px;display:flex;gap:4px;z-index:25;pointer-events:all;opacity:0;transition:opacity 0.18s;";
+      blot.addEventListener("mouseenter", () => { toolbar.style.opacity = "1"; });
+      blot.addEventListener("mouseleave", () => { toolbar.style.opacity = "0"; });
+
       const mh = document.createElement("div");
       mh.textContent = "⠿ Move";
       mh.title = "Drag to move image";
-      mh.style.cssText = "position:absolute;top:4px;left:4px;padding:2px 6px;background:#1f2937;color:#f9fafb;font-size:11px;border-radius:4px;cursor:grab;user-select:none;z-index:20;opacity:0.85;pointer-events:all;";
-      blot.appendChild(mh);
+      mh.style.cssText = "padding:2px 7px;background:#1f2937;color:#f9fafb;font-size:11px;line-height:16px;border-radius:4px;cursor:grab;user-select:none;opacity:0.88;";
 
-      const makeDraggable = (handle, target) => {
-        handle.addEventListener("mousedown", (e) => {
+      const delBtn = document.createElement("div");
+      delBtn.textContent = "✕ Delete";
+      delBtn.title = "Remove image";
+      delBtn.style.cssText = "padding:2px 7px;background:#dc2626;color:#fff;font-size:11px;line-height:16px;border-radius:4px;cursor:pointer;user-select:none;opacity:0.88;";
+      delBtn.addEventListener("mousedown", (e) => { e.preventDefault(); e.stopPropagation(); });
+      delBtn.addEventListener("click",     (e) => { e.preventDefault(); e.stopPropagation(); blot.remove(); });
+      delBtn.addEventListener("mouseover", () => { delBtn.style.background = "#b91c1c"; });
+      delBtn.addEventListener("mouseout",  () => { delBtn.style.background = "#dc2626"; });
+
+      toolbar.appendChild(mh);
+      toolbar.appendChild(delBtn);
+      blot.appendChild(toolbar);
+
+      // ── Move (drag entire blot) ──────────────────────────────────────
+      mh.addEventListener("mousedown", (e) => {
+        e.preventDefault(); e.stopPropagation();
+        const editorEl = blot.closest(".ql-editor") || blot.parentElement;
+        editorEl.style.position = "relative";
+        const eR = editorEl.getBoundingClientRect();
+        const bR = blot.getBoundingClientRect();
+        const iL = bR.left - eR.left + editorEl.scrollLeft;
+        const iT = bR.top  - eR.top  + editorEl.scrollTop;
+        blot.style.position = "absolute";
+        blot.style.left = iL + "px"; blot.style.top = iT + "px";
+        blot.style.zIndex = "50";
+        mh.style.cursor = "grabbing";
+        const sx = e.clientX, sy = e.clientY;
+        const mv = (me) => { blot.style.left=(iL+me.clientX-sx)+"px"; blot.style.top=(iT+me.clientY-sy)+"px"; };
+        const up = () => { mh.style.cursor="grab"; blot.style.zIndex="1"; document.removeEventListener("mousemove",mv); document.removeEventListener("mouseup",up); };
+        document.addEventListener("mousemove", mv);
+        document.addEventListener("mouseup", up);
+      });
+
+      // ── 8 resize handles (corners + edges) ──────────────────────────
+      const HANDLES = [
+        // corner handles
+        { id:"nw", style:"top:-5px;left:-5px",               cursor:"nw-resize" },
+        { id:"ne", style:"top:-5px;right:-5px",              cursor:"ne-resize" },
+        { id:"se", style:"bottom:-5px;right:-5px",           cursor:"se-resize" },
+        { id:"sw", style:"bottom:-5px;left:-5px",            cursor:"sw-resize" },
+        // edge handles
+        { id:"n",  style:"top:-5px;left:50%;transform:translateX(-50%)",          cursor:"n-resize" },
+        { id:"s",  style:"bottom:-5px;left:50%;transform:translateX(-50%)",       cursor:"s-resize" },
+        { id:"e",  style:"right:-5px;top:50%;transform:translateY(-50%)",         cursor:"e-resize" },
+        { id:"w",  style:"left:-5px;top:50%;transform:translateY(-50%)",          cursor:"w-resize" },
+      ];
+
+      HANDLES.forEach(({ id, style, cursor }) => {
+        const h = document.createElement("div");
+        h.style.cssText = `position:absolute;${style};width:10px;height:10px;background:#10b981;border:2px solid #fff;border-radius:2px;cursor:${cursor};z-index:22;user-select:none;opacity:0;transition:opacity 0.15s;`;
+        h.dataset.resizeHandle = id;
+        blot.appendChild(h);
+
+        // Show handles on blot hover
+        blot.addEventListener("mouseenter", () => { h.style.opacity = "1"; });
+        blot.addEventListener("mouseleave", () => { h.style.opacity = "0"; });
+
+        h.addEventListener("mousedown", (e) => {
           e.preventDefault(); e.stopPropagation();
-          const editorEl  = target.closest(".ql-editor") || target.parentElement;
-          editorEl.style.position = "relative";
-          const eRect = editorEl.getBoundingClientRect();
-          const bRect = target.getBoundingClientRect();
-          const iL = bRect.left - eRect.left + editorEl.scrollLeft;
-          const iT = bRect.top  - eRect.top  + editorEl.scrollTop;
-          target.style.position = "absolute";
-          target.style.left = iL + "px";
-          target.style.top  = iT + "px";
-          target.style.zIndex = "50";
-          handle.style.cursor = "grabbing";
-          const sx = e.clientX, sy = e.clientY;
+          const startX = e.clientX, startY = e.clientY;
+          const startW = img.offsetWidth,  startH = img.offsetHeight;
+          const startL = blot.offsetLeft,  startT = blot.offsetTop;
+
           const mv = (me) => {
-            target.style.left = (iL + me.clientX - sx) + "px";
-            target.style.top  = (iT + me.clientY - sy) + "px";
+            const dx = me.clientX - startX;
+            const dy = me.clientY - startY;
+            let newW = startW, newH = startH, newL = startL, newT = startT;
+
+            if (id.includes("e"))  newW = Math.max(40, startW + dx);
+            if (id.includes("s"))  newH = Math.max(40, startH + dy);
+            if (id.includes("w")) { newW = Math.max(40, startW - dx); newL = startL + startW - newW; }
+            if (id.includes("n")) { newH = Math.max(40, startH - dy); newT = startT + startH - newH; }
+
+            img.style.width  = newW + "px";
+            img.style.height = newH + "px";
+            // When resizing from left/top, adjust blot position too
+            if (id.includes("w") || id.includes("n")) {
+              blot.style.position = "absolute";
+              if (id.includes("w")) blot.style.left = newL + "px";
+              if (id.includes("n")) blot.style.top  = newT + "px";
+            }
           };
-          const up = () => { handle.style.cursor="grab"; target.style.zIndex="1"; document.removeEventListener("mousemove",mv); document.removeEventListener("mouseup",up); };
+          const up = () => { document.removeEventListener("mousemove",mv); document.removeEventListener("mouseup",up); };
           document.addEventListener("mousemove", mv);
           document.addEventListener("mouseup", up);
         });
-      };
-      makeDraggable(mh, blot);
-
-      // ── Resize handle (bottom-right corner) ──────────────────────────
-      const rh = document.createElement("div");
-      rh.title = "Drag to resize";
-      rh.style.cssText = "position:absolute;bottom:2px;right:2px;width:14px;height:14px;background:#10b981;border-radius:3px;cursor:se-resize;z-index:25;opacity:0.9;user-select:none;";
-      blot.appendChild(rh);
-      rh.addEventListener("mousedown", (e) => {
-        e.preventDefault(); e.stopPropagation();
-        const startX = e.clientX, startW = img.offsetWidth;
-        const startY = e.clientY, startH = img.offsetHeight;
-        const mv = (me) => {
-          const newW = Math.max(40, startW + me.clientX - startX);
-          const newH = Math.max(40, startH + me.clientY - startY);
-          img.style.width  = newW + "px";
-          img.style.height = newH + "px";
-        };
-        const up = () => { document.removeEventListener("mousemove",mv); document.removeEventListener("mouseup",up); };
-        document.addEventListener("mousemove", mv);
-        document.addEventListener("mouseup", up);
       });
     });
   }, []);
