@@ -489,6 +489,8 @@ const QuestionEntryStep = ({ examData, setExamData }) => {
               onChange={(value) => handleFieldChange("text", value)}
               placeholder="Enter your question here... Use the math panel for symbols and equations"
               className="min-h-[150px]"
+              maxImageW={600}
+              maxImageH={420}
             />
             {!formData.text && (
               <p className="text-red-500 text-sm mt-1">
@@ -527,10 +529,10 @@ const QuestionEntryStep = ({ examData, setExamData }) => {
                       key={`option-${currentSubjectIndex}-${currentQuestionIndex}-${index}`}
                       value={option}
                       onChange={(value) => handleOptionChange(index, value)}
-                      placeholder={`Enter option ${String.fromCharCode(
-                        65 + index
-                      )}`}
+                      placeholder={`Enter option ${String.fromCharCode(65 + index)}`}
                       className="min-h-[100px]"
+                      maxImageW={400}
+                      maxImageH={300}
                     />
                   </div>
                   {!option && (
@@ -554,6 +556,8 @@ const QuestionEntryStep = ({ examData, setExamData }) => {
               onChange={(value) => handleFieldChange("explanation", value)}
               placeholder="Explain the correct answer with mathematical reasoning..."
               className="min-h-[120px]"
+              maxImageW={600}
+              maxImageH={420}
             />
           </div>
 

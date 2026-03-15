@@ -4,6 +4,7 @@ import "react-quill/dist/quill.snow.css";
 import "katex/dist/katex.min.css";
 import katex from "katex";
 import { InlineMath } from "react-katex";
+import ImageInsertModal from "./ImageInsertModal";
 
 // ── Register custom Font families ────────────────────────────────────
 const Font = Quill.import("formats/font");
@@ -35,23 +36,49 @@ MathBlot.tagName = "span";
 MathBlot.className = "math-formula-blot";
 if (!Quill.imports["formats/mathformula"]) Quill.register(MathBlot);
 
-// ── RawTableBlot — an opaque block embed that holds raw table HTML ────
+// ── RawTableBlot — opaque block embed that holds interactive table HTML ──
 const BlockEmbed = Quill.import("blots/block/embed");
 class RawTableBlot extends BlockEmbed {
   static create(html) {
-    const node = super.create();
-    node.innerHTML = html;
-    node.setAttribute("contenteditable", "false");
-    node.className = "raw-table-blot";
-    node.style.cssText = "display:inline-block;width:100%;resize:both;overflow:auto;min-width:120px;min-height:40px;";
-    return node;
+    const wrapper = super.create();
+    // The wrapper itself is NOT contenteditable=false; cells inside will be editable
+    wrapper.setAttribute("contenteditable", "false");
+    wrapper.className = "raw-table-blot";
+    wrapper.innerHTML = html;
+    return wrapper;
   }
-  static value(node) { return node.innerHTML; }
+  static value(node) {
+    // Return the table HTML (inner)
+    return node.innerHTML;
+  }
 }
 RawTableBlot.blotName = "rawtable";
 RawTableBlot.tagName = "div";
 RawTableBlot.className = "raw-table-blot";
 if (!Quill.imports["formats/rawtable"]) Quill.register(RawTableBlot);
+
+// ── RawImageBlot — block embed storing a single <img> ─────────────────
+const BlockEmbedImg = Quill.import("blots/block/embed");
+class RawImageBlot extends BlockEmbedImg {
+  static create(src) {
+    const wrapper = super.create();
+    wrapper.setAttribute("contenteditable", "false");
+    wrapper.className = "raw-image-blot";
+    const img = document.createElement("img");
+    img.src = src;
+    img.style.cssText = "max-width:100%;display:block;border-radius:4px;";
+    img.draggable = false;
+    wrapper.appendChild(img);
+    return wrapper;
+  }
+  static value(node) {
+    return node.querySelector("img")?.src || "";
+  }
+}
+RawImageBlot.blotName = "rawimage";
+RawImageBlot.tagName = "div";
+RawImageBlot.className = "raw-image-blot";
+if (!Quill.imports["formats/rawimage"]) Quill.register(RawImageBlot);
 
 // ── TablePicker sub-component (Word-style grid) ───────────────────────
 const TablePicker = ({ onSelect, onClose }) => {
@@ -79,16 +106,26 @@ const TablePicker = ({ onSelect, onClose }) => {
   );
 };
 
+// ── InteractiveTable — renders inside the Quill editor via a portal-like injection ──
+// This component manages an actual editable table with move + col-resize
+const InteractiveTable = ({ tableEl }) => {
+  // We don't need React; the logic is applied directly on DOM nodes in useEffect below
+  return null;
+};
+
 // ── Main MathEditor ───────────────────────────────────────────────────
-const MathEditor = ({ value, onChange, placeholder, className = "" }) => {
+const MathEditor = ({ value, onChange, placeholder, className = "", maxImageW = 600, maxImageH = 450 }) => {
   const quillRef = useRef(null);
-  const uid = useId();                          // unique per instance
+  const uid = useId();
   const toolbarId = `math-toolbar-${uid.replace(/:/g, "")}`;
   const [showMathPanel, setShowMathPanel] = useState(false);
   const [activeCategory, setActiveCategory] = useState("greek");
   const [showLatexBuilder, setShowLatexBuilder] = useState(false);
   const [latexInput, setLatexInput] = useState("");
   const [showTablePicker, setShowTablePicker] = useState(false);
+  const [showImageModal, setShowImageModal] = useState(false);
+  const insertIndexRef = useRef(0);          // cursor index when image modal opened
+  const editorContainerRef = useRef(null);
 
   useEffect(() => {
     const quill = quillRef.current?.getEditor();
@@ -103,6 +140,235 @@ const MathEditor = ({ value, onChange, placeholder, className = "" }) => {
       return new Delta(ops);
     });
   }, []);
+
+  // ── Make table cells editable and add resize + drag handle after Quill renders them ──
+  const setupTableInteractivity = useCallback((container) => {
+    if (!container) return;
+    const blots = container.querySelectorAll(".raw-table-blot");
+
+    blots.forEach((blot) => {
+      if (blot.dataset.interactive) return; // already set up
+      blot.dataset.interactive = "1";
+
+      // ── 1. Make cells editable ──────────────────────────────────────
+      blot.querySelectorAll("td, th").forEach(cell => {
+        cell.setAttribute("contenteditable", "true");
+        cell.style.position = "relative";
+        cell.style.minWidth = "60px";
+        // Prevent Quill from swallowing keyboard events inside cells
+        cell.addEventListener("keydown", e => e.stopPropagation());
+        cell.addEventListener("mousedown", e => e.stopPropagation());
+      });
+
+      // ── 2. Drag-to-move handle (inside the blot, top-left overlay) ─
+      //    Positioned INSIDE so it's never clipped by the editor overflow.
+      blot.style.position = "relative";
+
+      const moveHandle = document.createElement("div");
+      moveHandle.className = "table-move-handle";
+      moveHandle.title = "Drag to move table";
+      moveHandle.textContent = "⠿ Move";
+      // Pinned INSIDE the blot at top-left — never clipped by editor overflow
+      moveHandle.style.cssText = [
+        "position:absolute", "top:4px", "left:4px",
+        "padding:2px 6px",
+        "background:#1f2937", "color:#f9fafb",
+        "font-size:11px", "line-height:16px",
+        "border-radius:4px",
+        "cursor:grab", "user-select:none", "z-index:20",
+        "display:flex", "align-items:center", "gap:3px",
+        "opacity:0.85",
+        "pointer-events:all",
+      ].join(";");
+
+      // Insert the handle as FIRST child inside the blot
+      // (before the <table>), so it overlays on top
+      blot.prepend(moveHandle);
+
+      // ── Drag-to-move logic ─────────────────────────────────────────
+      const startDrag = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        // Ensure the ql-editor is the offset parent
+        const editorEl = blot.closest(".ql-editor") || blot.parentElement;
+        editorEl.style.position = "relative";
+
+        const editorRect = editorEl.getBoundingClientRect();
+        const blotRect   = blot.getBoundingClientRect();
+
+        // Capture current position relative to editor (accounting for scroll)
+        const initLeft = blotRect.left - editorRect.left + editorEl.scrollLeft;
+        const initTop  = blotRect.top  - editorRect.top  + editorEl.scrollTop;
+
+        // Lift the blot out of normal flow → absolute positioning
+        blot.style.position = "absolute";
+        blot.style.left   = initLeft + "px";
+        blot.style.top    = initTop  + "px";
+        blot.style.width  = blotRect.width + "px";
+        blot.style.zIndex = "50";
+        blot.style.boxShadow = "0 4px 16px rgba(0,0,0,0.18)";
+        moveHandle.style.cursor = "grabbing";
+
+        const startX = e.clientX;
+        const startY = e.clientY;
+
+        const onMove = (me) => {
+          const dx = me.clientX - startX;
+          const dy = me.clientY - startY;
+          blot.style.left = (initLeft + dx) + "px";
+          blot.style.top  = (initTop  + dy) + "px";
+        };
+        const onUp = () => {
+          moveHandle.style.cursor = "grab";
+          blot.style.zIndex = "1";
+          blot.style.boxShadow = "";
+          document.removeEventListener("mousemove", onMove);
+          document.removeEventListener("mouseup",   onUp);
+        };
+        document.addEventListener("mousemove", onMove);
+        document.addEventListener("mouseup",   onUp);
+      };
+
+      moveHandle.addEventListener("mousedown", startDrag);
+
+      // ── 3. Add column resize handles ───────────────────────────────
+      const rows = blot.querySelectorAll("tr");
+      rows.forEach(row => {
+        const cells = row.querySelectorAll("td, th");
+        cells.forEach((cell, i) => {
+          if (i === cells.length - 1) return; // no handle after last cell
+
+          const resizer = document.createElement("div");
+          resizer.className = "col-resizer";
+          resizer.style.cssText = [
+            "position:absolute", "right:-3px", "top:0",
+            "width:6px", "height:100%",
+            "cursor:col-resize",
+            "z-index:5",
+            "background:transparent",
+            "user-select:none",
+          ].join(";");
+
+          resizer.addEventListener("mousedown", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const startX = e.clientX;
+            const startW = cell.offsetWidth;
+            const nextCell = cells[i + 1];
+            const nextW = nextCell.offsetWidth;
+
+            const onMove = (me) => {
+              const dx = me.clientX - startX;
+              const newW = Math.max(40, startW + dx);
+              const newNext = Math.max(40, nextW - dx);
+              cell.style.width = newW + "px";
+              nextCell.style.width = newNext + "px";
+            };
+            const onUp = () => {
+              document.removeEventListener("mousemove", onMove);
+              document.removeEventListener("mouseup", onUp);
+            };
+            document.addEventListener("mousemove", onMove);
+            document.addEventListener("mouseup", onUp);
+          });
+
+          resizer.addEventListener("mouseover", () => {
+            resizer.style.background = "rgba(16,185,129,0.5)";
+          });
+          resizer.addEventListener("mouseout", () => {
+            resizer.style.background = "transparent";
+          });
+
+          cell.appendChild(resizer);
+        });
+      });
+    });
+  }, []);
+
+  // ── Move + resize handles for inserted images ─────────────────────────────
+  const setupImageInteractivity = useCallback((container) => {
+    if (!container) return;
+    container.querySelectorAll(".raw-image-blot").forEach((blot) => {
+      if (blot.dataset.imgInteractive) return;
+      blot.dataset.imgInteractive = "1";
+      blot.style.position = "relative";
+      blot.style.display  = "inline-block";
+
+      const img = blot.querySelector("img");
+      if (!img) return;
+
+      // ── Move handle ──────────────────────────────────────────────────
+      const mh = document.createElement("div");
+      mh.textContent = "⠿ Move";
+      mh.title = "Drag to move image";
+      mh.style.cssText = "position:absolute;top:4px;left:4px;padding:2px 6px;background:#1f2937;color:#f9fafb;font-size:11px;border-radius:4px;cursor:grab;user-select:none;z-index:20;opacity:0.85;pointer-events:all;";
+      blot.appendChild(mh);
+
+      const makeDraggable = (handle, target) => {
+        handle.addEventListener("mousedown", (e) => {
+          e.preventDefault(); e.stopPropagation();
+          const editorEl  = target.closest(".ql-editor") || target.parentElement;
+          editorEl.style.position = "relative";
+          const eRect = editorEl.getBoundingClientRect();
+          const bRect = target.getBoundingClientRect();
+          const iL = bRect.left - eRect.left + editorEl.scrollLeft;
+          const iT = bRect.top  - eRect.top  + editorEl.scrollTop;
+          target.style.position = "absolute";
+          target.style.left = iL + "px";
+          target.style.top  = iT + "px";
+          target.style.zIndex = "50";
+          handle.style.cursor = "grabbing";
+          const sx = e.clientX, sy = e.clientY;
+          const mv = (me) => {
+            target.style.left = (iL + me.clientX - sx) + "px";
+            target.style.top  = (iT + me.clientY - sy) + "px";
+          };
+          const up = () => { handle.style.cursor="grab"; target.style.zIndex="1"; document.removeEventListener("mousemove",mv); document.removeEventListener("mouseup",up); };
+          document.addEventListener("mousemove", mv);
+          document.addEventListener("mouseup", up);
+        });
+      };
+      makeDraggable(mh, blot);
+
+      // ── Resize handle (bottom-right corner) ──────────────────────────
+      const rh = document.createElement("div");
+      rh.title = "Drag to resize";
+      rh.style.cssText = "position:absolute;bottom:2px;right:2px;width:14px;height:14px;background:#10b981;border-radius:3px;cursor:se-resize;z-index:25;opacity:0.9;user-select:none;";
+      blot.appendChild(rh);
+      rh.addEventListener("mousedown", (e) => {
+        e.preventDefault(); e.stopPropagation();
+        const startX = e.clientX, startW = img.offsetWidth;
+        const startY = e.clientY, startH = img.offsetHeight;
+        const mv = (me) => {
+          const newW = Math.max(40, startW + me.clientX - startX);
+          const newH = Math.max(40, startH + me.clientY - startY);
+          img.style.width  = newW + "px";
+          img.style.height = newH + "px";
+        };
+        const up = () => { document.removeEventListener("mousemove",mv); document.removeEventListener("mouseup",up); };
+        document.addEventListener("mousemove", mv);
+        document.addEventListener("mouseup", up);
+      });
+    });
+  }, []);
+
+  // Observe the editor for new tables AND images being inserted
+  useEffect(() => {
+    const quill = quillRef.current?.getEditor();
+    if (!quill) return;
+    const editorRoot = quill.root;
+
+    setupTableInteractivity(editorRoot);
+    setupImageInteractivity(editorRoot);
+
+    const observer = new MutationObserver(() => {
+      setupTableInteractivity(editorRoot);
+      setupImageInteractivity(editorRoot);
+    });
+    observer.observe(editorRoot, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, [setupTableInteractivity, setupImageInteractivity]);
 
   // ── Insert helpers ──────────────────────────────────────────────────
   const getIndex = () => {
@@ -131,12 +397,17 @@ const MathEditor = ({ value, onChange, placeholder, className = "" }) => {
     const q = quillRef.current?.getEditor();
     if (!q) return;
 
+    // Equal width columns as %
+    const colW = Math.floor(100 / cols);
+
     const cellStyle = [
       "border:1px solid #374151",
       "padding:8px 10px",
+      `width:${colW}%`,
       "min-width:60px",
       "box-sizing:border-box",
       "vertical-align:top",
+      "background:#ffffff",
     ].join(";");
 
     const tableRows = Array.from({ length: rows }, () =>
@@ -145,7 +416,7 @@ const MathEditor = ({ value, onChange, placeholder, className = "" }) => {
       ).join("")}</tr>`
     ).join("");
 
-    const tableHTML = `<table style="border-collapse:collapse;width:100%;">${tableRows}</table>`;
+    const tableHTML = `<table style="border-collapse:collapse;width:100%;table-layout:fixed;">${tableRows}</table>`;
 
     const range = q.getSelection() || { index: q.getLength() - 1 };
     q.insertEmbed(range.index, "rawtable", tableHTML, "user");
@@ -157,6 +428,16 @@ const MathEditor = ({ value, onChange, placeholder, className = "" }) => {
   const insertCustomLatex = () => {
     if (latexInput.trim()) { insertMathBlot(latexInput.trim()); setLatexInput(""); }
   };
+
+  // ── Insert image from modal ─────────────────────────────────────────
+  const insertImage = useCallback((dataUrl) => {
+    const q = quillRef.current?.getEditor();
+    if (!q) return;
+    const idx = insertIndexRef.current;
+    q.insertEmbed(idx, "rawimage", dataUrl, "user");
+    q.insertText(idx + 1, "\n", "user");
+    q.setSelection(idx + 2);
+  }, []);
 
   // ── Quill toolbar & formats ─────────────────────────────────────────
   const modules = {
@@ -171,7 +452,7 @@ const MathEditor = ({ value, onChange, placeholder, className = "" }) => {
     "color","background","align",
     "script","list","bullet","indent",
     "link","image","blockquote","code-block",
-    "mathformula","rawtable",
+    "mathformula","rawtable","rawimage",
   ];
 
   // ── Symbol Library ──────────────────────────────────────────────────
@@ -255,7 +536,7 @@ const MathEditor = ({ value, onChange, placeholder, className = "" }) => {
   ];
 
   return (
-    <div className={`relative ${className}`}>
+    <div className={`relative ${className}`} ref={editorContainerRef}>
       {/* Custom Toolbar — stop mousedown so buttons don't submit form or scroll */}
       <div
         id={toolbarId}
@@ -327,7 +608,13 @@ const MathEditor = ({ value, onChange, placeholder, className = "" }) => {
         {/* Blockquote, Code, Image */}
         <button type="button" className="ql-blockquote w-7 h-7 flex items-center justify-center rounded hover:bg-gray-200 text-sm" title="Blockquote">"</button>
         <button type="button" className="ql-code-block w-7 h-7 flex items-center justify-center rounded hover:bg-gray-200 text-xs font-mono" title="Code Block">{`</>`}</button>
-        <button type="button" className="ql-image w-7 h-7 flex items-center justify-center rounded hover:bg-gray-200 text-xs" title="Image">🖼</button>
+        <button type="button" className="ql-image w-7 h-7 flex items-center justify-center rounded hover:bg-gray-200 text-xs" title="Image"
+          onClick={(e) => {
+            e.preventDefault();
+            const q = quillRef.current?.getEditor();
+            insertIndexRef.current = q ? (q.getSelection()?.index ?? q.getLength() - 1) : 0;
+            setShowImageModal(true);
+          }}>🖼</button>
 
         <span className="w-px h-5 bg-gray-300 mx-1" />
 
@@ -449,26 +736,89 @@ const MathEditor = ({ value, onChange, placeholder, className = "" }) => {
           theme="snow" />
       </div>
 
+      {/* Image Insert Modal */}
+      {showImageModal && (
+        <ImageInsertModal
+          onInsert={(dataUrl) => { insertImage(dataUrl); setShowImageModal(false); }}
+          onClose={() => setShowImageModal(false)}
+          maxW={maxImageW}
+          maxH={maxImageH}
+        />
+      )}
+
       <style>{`
         /* ── Math blot ── */
         .math-formula-blot { display:inline-block; vertical-align:middle; padding:1px 4px; margin:0 2px; background:#f0fdf4; border:1px solid #a7f3d0; border-radius:4px; cursor:default; user-select:none; }
         .math-formula-blot:hover { background:#d1fae5; border-color:#10b981; }
 
-        /* ── Raw table blot ── */
-        .raw-table-blot { display:inline-block !important; width:100%; margin:12px 0; resize:both; overflow:auto; min-width:120px; min-height:40px; box-shadow:0 0 0 1px #d1d5db; border-radius:4px; }
-        .raw-table-blot table { border-collapse:collapse !important; width:100% !important; }
-        .raw-table-blot td { border:1px solid #374151 !important; padding:8px 10px !important; min-width:60px !important; vertical-align:top !important; }
+        /* ── Raw table blot wrapper ── */
+        .raw-table-blot {
+          display: block !important;
+          width: fit-content;
+          max-width: 100%;
+          margin: 20px 0 12px 0;
+          overflow: visible;
+          position: relative;
+        }
+
+        /* ── Table itself ── */
+        .raw-table-blot table {
+          border-collapse: collapse !important;
+          width: 100% !important;
+          table-layout: fixed;
+        }
+
+        /* ── All cells — uniform color, editable ── */
+        .raw-table-blot td,
+        .raw-table-blot th {
+          border: 1px solid #374151 !important;
+          padding: 8px 10px !important;
+          min-width: 60px !important;
+          vertical-align: top !important;
+          background: #ffffff !important;
+          font-weight: normal !important;
+          position: relative;
+          box-sizing: border-box;
+          cursor: text;
+        }
+
+        .raw-table-blot td:focus,
+        .raw-table-blot th:focus {
+          outline: 2px solid #10b981;
+          outline-offset: -2px;
+          background: #f0fdf4 !important;
+        }
+
+        /* ── Move handle — always visible inside the table ── */
+        .table-move-handle {
+          opacity: 0.75;
+          transition: opacity 0.15s, background 0.15s;
+        }
+        .table-move-handle:hover {
+          opacity: 1;
+          background: #374151 !important;
+        }
+
+        /* ── Column resize handle ── */
+        .col-resizer {
+          position: absolute;
+          right: -3px;
+          top: 0;
+          width: 6px;
+          height: 100%;
+          cursor: col-resize;
+          z-index: 5;
+          background: transparent;
+        }
+        .col-resizer:hover {
+          background: rgba(16,185,129,0.5) !important;
+        }
 
         /* ── Editor area ── */
         .word-style-editor .ql-container { border:none !important; font-size:14px !important; }
         .word-style-editor .ql-editor { min-height:200px; padding:16px; line-height:1.7; }
         .word-style-editor .ql-editor.ql-blank::before { font-style:italic; color:#9ca3af; left:16px; }
-        .word-style-editor .ql-toolbar { display:none !important; } /* hidden — replaced by custom */
-
-        /* ── Table styling ── */
-        .word-style-editor .ql-editor table { border-collapse:collapse !important; width:100% !important; margin:12px 0 !important; border:1px solid #374151 !important; }
-        .word-style-editor .ql-editor td { border:1px solid #374151 !important; padding:8px 12px !important; min-width:80px !important; }
-        .word-style-editor .ql-editor tr:first-child td { background:#e5e7eb !important; font-weight:600 !important; }
+        .word-style-editor .ql-toolbar { display:none !important; }
 
         /* ── Quill color pickers ── */
         .ql-color .ql-picker-label svg, .ql-background .ql-picker-label svg { display:none; }
@@ -481,6 +831,24 @@ const MathEditor = ({ value, onChange, placeholder, className = "" }) => {
         .ql-font-courier-new { font-family: 'Courier New', Courier, monospace; }
         .ql-font-georgia { font-family: Georgia, serif; }
         .ql-font-verdana { font-family: Verdana, Geneva, sans-serif; }
+
+        /* ── Raw image blot ── */
+        .raw-image-blot {
+          display: inline-block !important;
+          position: relative;
+          margin: 8px 0;
+          line-height: 0;
+          border-radius: 4px;
+          box-shadow: 0 0 0 1px #d1d5db;
+        }
+        .raw-image-blot img {
+          display: block;
+          max-width: 100%;
+          border-radius: 4px;
+        }
+        .raw-image-blot:hover {
+          box-shadow: 0 0 0 2px #10b981;
+        }
       `}</style>
     </div>
   );
