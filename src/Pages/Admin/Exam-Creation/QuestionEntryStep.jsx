@@ -18,6 +18,14 @@ const QuestionEntryStep = ({ examData, setExamData }) => {
     explanation: "",
     difficulty: "medium",
   });
+  const [toast, setToast] = useState(null); // { msg, key }
+
+  // Quill emits "<p><br></p>" for an empty editor — treat that (and ""/null) as empty
+  const isQuillEmpty = (html) => {
+    if (!html) return true;
+    const t = html.trim();
+    return t === "" || t === "<p><br></p>";
+  };
 
   const currentSubject = examData.subjects[currentSubjectIndex];
 
@@ -35,8 +43,8 @@ const QuestionEntryStep = ({ examData, setExamData }) => {
     );
     return (
       savedQuestion &&
-      savedQuestion.text &&
-      savedQuestion.options.every((opt) => opt)
+      !isQuillEmpty(savedQuestion.text) &&
+      savedQuestion.options.every((opt) => !isQuillEmpty(opt))
     );
   };
 
@@ -44,7 +52,11 @@ const QuestionEntryStep = ({ examData, setExamData }) => {
   const isSpecificQuestionSaved = (subjectIndex, questionIndex) => {
     const subject = examData.subjects[subjectIndex];
     const question = subject?.questions?.[questionIndex];
-    return question && question.text && question.options.every((opt) => opt);
+    return (
+      question &&
+      !isQuillEmpty(question.text) &&
+      question.options.every((opt) => !isQuillEmpty(opt))
+    );
   };
 
   // Get first unsaved question index for a subject
@@ -86,6 +98,12 @@ const QuestionEntryStep = ({ examData, setExamData }) => {
     setHasUnsavedChanges(false);
   }, [currentSubjectIndex, currentQuestionIndex]);
 
+  const showToast = (msg) => {
+    const key = Date.now();
+    setToast({ msg, key });
+    setTimeout(() => setToast(null), 2500);
+  };
+
   const saveQuestion = () => {
     if (!isFormValid()) {
       alert(
@@ -104,6 +122,7 @@ const QuestionEntryStep = ({ examData, setExamData }) => {
     });
 
     setHasUnsavedChanges(false);
+    showToast(`✅ Question ${currentQuestionIndex + 1} saved!`);
 
     // Check if this is the last question of the last subject
     const isLastSubject = currentSubjectIndex === examData.subjects.length - 1;
@@ -148,6 +167,7 @@ const QuestionEntryStep = ({ examData, setExamData }) => {
     });
 
     setHasUnsavedChanges(false);
+    showToast(`✅ Question ${currentQuestionIndex + 1} changes saved!`);
   };
 
   // Enhanced navigation logic: can access saved questions + first unsaved
@@ -234,9 +254,8 @@ const QuestionEntryStep = ({ examData, setExamData }) => {
 
   const isFormValid = () => {
     return (
-      formData.text &&
-      formData.text.trim() !== "" &&
-      formData.options.every((opt) => opt && opt.trim() !== "") &&
+      !isQuillEmpty(formData.text) &&
+      formData.options.every((opt) => !isQuillEmpty(opt)) &&
       formData.correctAnswer !== undefined
     );
   };
@@ -247,9 +266,8 @@ const QuestionEntryStep = ({ examData, setExamData }) => {
       subject.questions.length === subject.questionCount &&
       subject.questions.every(
         (q) =>
-          q.text &&
-          q.text.trim() !== "" &&
-          q.options.every((opt) => opt && opt.trim() !== "") &&
+          !isQuillEmpty(q.text) &&
+          q.options.every((opt) => !isQuillEmpty(opt)) &&
           q.correctAnswer !== undefined
       )
     );
@@ -279,6 +297,36 @@ const QuestionEntryStep = ({ examData, setExamData }) => {
 
   return (
     <div className="space-y-6">
+      {/* ── Toast notification ────────────────────────────────────────── */}
+      {toast && (
+        <div
+          key={toast.key}
+          style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.45)", animation: "fadeIn 0.2s ease-out" }}
+        >
+          <div style={{ animation: "popIn 0.25s ease-out" }}
+            className="bg-white rounded-2xl shadow-2xl px-10 py-8 flex flex-col items-center gap-3 min-w-[280px] max-w-xs text-center"
+          >
+            {/* Big check */}
+            <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mb-1">
+              <svg className="w-9 h-9 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <p className="text-xl font-bold text-gray-900">{toast.msg}</p>
+            <p className="text-sm text-gray-500">Moving to next question…</p>
+            {/* countdown bar */}
+            <div className="w-full h-1 bg-gray-100 rounded-full overflow-hidden mt-1">
+              <div className="h-full bg-emerald-500 rounded-full" style={{ animation: "shrink 2.5s linear forwards" }} />
+            </div>
+          </div>
+        </div>
+      )}
+      <style>{`
+        @keyframes fadeIn  { from { opacity:0 } to { opacity:1 } }
+        @keyframes popIn   { from { opacity:0; transform:scale(0.85) } to { opacity:1; transform:scale(1) } }
+        @keyframes shrink  { from { width:100% } to { width:0% } }
+      `}</style>
+
       {/* Subject Navigation */}
       <div className="bg-white border border-gray-200 rounded-lg p-4">
         <div className="flex justify-between items-center mb-4">
@@ -315,7 +363,7 @@ const QuestionEntryStep = ({ examData, setExamData }) => {
           {examData.subjects.map((subject, index) => {
             const completedQuestions =
               subject.questions?.filter(
-                (q) => q && q.text && q.options.every((opt) => opt)
+                (q) => q && !isQuillEmpty(q.text) && q.options.every((opt) => !isQuillEmpty(opt))
               ).length || 0;
             const totalQuestions = subject.questionCount;
             const isActive = index === currentSubjectIndex;
@@ -641,7 +689,7 @@ const QuestionEntryStep = ({ examData, setExamData }) => {
           {examData.subjects.map((subject, index) => {
             const completed =
               subject.questions?.filter(
-                (q) => q && q.text && q.options.every((opt) => opt)
+                (q) => q && !isQuillEmpty(q.text) && q.options.every((opt) => !isQuillEmpty(opt))
               ).length || 0;
             const total = subject.questionCount;
             const percentage = (completed / total) * 100;

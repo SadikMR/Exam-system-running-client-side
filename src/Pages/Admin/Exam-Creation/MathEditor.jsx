@@ -48,8 +48,10 @@ class RawTableBlot extends BlockEmbed {
     return wrapper;
   }
   static value(node) {
-    // Return the table HTML (inner)
-    return node.innerHTML;
+    // Clone and strip all UI-only injected nodes before returning innerHTML
+    const clone = node.cloneNode(true);
+    clone.querySelectorAll("[data-ui-only]").forEach(el => el.remove());
+    return clone.innerHTML;
   }
 }
 RawTableBlot.blotName = "rawtable";
@@ -72,6 +74,7 @@ class RawImageBlot extends BlockEmbedImg {
     return wrapper;
   }
   static value(node) {
+    // Return only the img src — toolbar/handle elements are UI-only and should not be saved
     return node.querySelector("img")?.src || "";
   }
 }
@@ -163,6 +166,7 @@ const MathEditor = ({ value, onChange, placeholder, className = "", maxImageW = 
 
       // ── 2. Toolbar row: Move + Delete ──────────────────────────────
       const toolbar = document.createElement("div");
+      toolbar.dataset.uiOnly = "true";  // stripped before DB save
       toolbar.style.cssText = "position:absolute;top:4px;left:4px;display:flex;gap:4px;z-index:20;pointer-events:all;opacity:0;transition:opacity 0.18s;";
       blot.addEventListener("mouseenter", () => { toolbar.style.opacity = "1"; });
       blot.addEventListener("mouseleave", () => { toolbar.style.opacity = "0"; });
@@ -215,6 +219,7 @@ const MathEditor = ({ value, onChange, placeholder, className = "", maxImageW = 
           if (i === cells.length - 1) return;
           const resizer = document.createElement("div");
           resizer.className = "col-resizer";
+          resizer.dataset.uiOnly = "true";  // stripped before DB save
           resizer.style.cssText = "position:absolute;right:-3px;top:0;width:6px;height:100%;cursor:col-resize;z-index:5;background:transparent;user-select:none;";
           resizer.addEventListener("mousedown", (e) => {
             e.preventDefault(); e.stopPropagation();
@@ -244,6 +249,7 @@ const MathEditor = ({ value, onChange, placeholder, className = "", maxImageW = 
       TABLE_HANDLES.forEach(({ id, style, cursor }) => {
         const h = document.createElement("div");
         h.style.cssText = `position:absolute;${style};width:10px;height:10px;background:#10b981;border:2px solid #fff;border-radius:2px;cursor:${cursor};z-index:22;user-select:none;opacity:0;transition:opacity 0.15s;`;
+        h.dataset.uiOnly = "true";  // stripped before DB save
         blot.appendChild(h);
 
         blot.addEventListener("mouseenter", () => { h.style.opacity = "1"; });
@@ -302,6 +308,7 @@ const MathEditor = ({ value, onChange, placeholder, className = "", maxImageW = 
 
       // ── Toolbar (move + delete) ──────────────────────────────────────
       const toolbar = document.createElement("div");
+      toolbar.dataset.uiOnly = "true";  // stripped before DB save
       toolbar.style.cssText = "position:absolute;top:4px;left:4px;display:flex;gap:4px;z-index:25;pointer-events:all;opacity:0;transition:opacity 0.18s;";
       blot.addEventListener("mouseenter", () => { toolbar.style.opacity = "1"; });
       blot.addEventListener("mouseleave", () => { toolbar.style.opacity = "0"; });
@@ -362,6 +369,7 @@ const MathEditor = ({ value, onChange, placeholder, className = "", maxImageW = 
         const h = document.createElement("div");
         h.style.cssText = `position:absolute;${style};width:10px;height:10px;background:#10b981;border:2px solid #fff;border-radius:2px;cursor:${cursor};z-index:22;user-select:none;opacity:0;transition:opacity 0.15s;`;
         h.dataset.resizeHandle = id;
+        h.dataset.uiOnly = "true";  // stripped before DB save
         blot.appendChild(h);
 
         // Show handles on blot hover
