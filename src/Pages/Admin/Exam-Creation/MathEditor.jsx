@@ -117,6 +117,17 @@ const InteractiveTable = ({ tableEl }) => {
 };
 
 // ── Main MathEditor ───────────────────────────────────────────────────
+// ── Strip injected UI-only elements before passing HTML to parent ────────────
+// Quill serialises the live DOM to HTML in onChange, which includes the interactive
+// handles/toolbars added by setupTableInteractivity / setupImageInteractivity.
+// We parse the HTML, remove those nodes, and return clean markup.
+const stripUIOnly = (html) => {
+  if (!html) return html;
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  doc.querySelectorAll("[data-ui-only],[data-uiOnly]").forEach(el => el.remove());
+  return doc.body.innerHTML;
+};
+
 const MathEditor = ({ value, onChange, placeholder, className = "", maxImageW = 600, maxImageH = 450 }) => {
   const quillRef = useRef(null);
   const uid = useId();
@@ -791,7 +802,7 @@ const MathEditor = ({ value, onChange, placeholder, className = "", maxImageW = 
       {/* Quill Editor */}
       <div className={`border border-gray-300 ${(!showMathPanel && !showLatexBuilder) ? "rounded-b-lg border-t-0" : "border-t-0"} overflow-hidden bg-white`}>
         <ReactQuill ref={quillRef} value={value}
-          onChange={v => onChange(v)}
+          onChange={v => onChange(stripUIOnly(v))}
           modules={modules} formats={formats}
           placeholder={placeholder}
           className="word-style-editor"
