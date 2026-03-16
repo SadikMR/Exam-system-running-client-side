@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback, useId } from "react";
+import React, { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo, useId } from "react";
 import ReactQuill, { Quill } from "react-quill";
 import "react-quill/dist/quill.snow.css";
 import "katex/dist/katex.min.css";
@@ -496,12 +496,18 @@ const MathEditor = ({ value, onChange, placeholder, className = "", maxImageW = 
   }, []);
 
   // ── Quill toolbar & formats ─────────────────────────────────────────
-  const modules = {
+  // useMemo keeps the modules reference stable across re-renders so ReactQuill
+  // doesn't destroy and recreate the editor on every parent state change.
+  const modules = useMemo(() => ({
     toolbar: {
       container: `#${toolbarId}`,
+      handlers: {
+        // Disable Quill's built-in file-dialog image handler — we open our own modal.
+        image: () => {},
+      },
     },
     history: { delay: 500, maxStack: 100 },
-  };
+  }), [toolbarId]);
 
   const formats = [
     "font","size","bold","italic","underline","strike",

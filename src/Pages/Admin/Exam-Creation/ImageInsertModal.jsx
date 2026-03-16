@@ -27,29 +27,37 @@ export default function ImageInsertModal({ onInsert, onClose, maxW = 600, maxH =
   const [dragState, setDragState] = useState(null);      // active drag descriptor
   // camera
   const [cameraActive, setCameraActive] = useState(false);
-  const videoRef  = useRef(null);
-  const streamRef = useRef(null);
+  const videoRef    = useRef(null);
+  const streamRef   = useRef(null);
+  const fileInputRef = useRef(null);  // explicit ref to avoid auto-dialog
   // canvas
-  const canvasRef  = useRef(null);
-  const imgEl      = useRef(null);   // HTMLImageElement (set in onload)
-  const canvasMeta = useRef({ dw: 0, dh: 0 });
+  const canvasRef   = useRef(null);
+  const imgEl       = useRef(null);   // HTMLImageElement (set in onload)
+  const canvasMeta  = useRef({ dw: 0, dh: 0 });
+  const blobUrlRef  = useRef(null);  // tracks object URL for revocation
 
   // ── Step 1: load image after rawSrc changes ───────────────────────────────
   useEffect(() => {
     if (!rawSrc) { setImageReady(false); imgEl.current = null; return; }
     setImageReady(false);
+    let cancelled = false;
     const img = new window.Image();
     img.onload = () => {
+      if (cancelled) return;
       const r  = Math.min(DISPLAY_W / img.naturalWidth, DISPLAY_H / img.naturalHeight, 1);
       const dw = Math.round(img.naturalWidth  * r);
       const dh = Math.round(img.naturalHeight * r);
-      imgEl.current        = img;
-      canvasMeta.current   = { dw, dh };
-      setCrop({ x: 0, y: 0, w: dw, h: dh });   // full-image default
-      setImageReady(true);                        // THEN reveal canvas
+      imgEl.current      = img;
+      canvasMeta.current = { dw, dh };
+      setCrop({ x: 0, y: 0, w: dw, h: dh });
+      setImageReady(true);
+    };
+    img.onerror = () => {
+      if (cancelled) return;
+      console.error("ImageInsertModal: failed to load image src", rawSrc?.slice(0, 80));
     };
     img.src = rawSrc;
-    return () => { img.onload = null; };
+    return () => { cancelled = true; };
   }, [rawSrc]);
 
   // ── Step 2: draw — runs synchronously after DOM paint (useLayoutEffect) ──
@@ -255,7 +263,10 @@ export default function ImageInsertModal({ onInsert, onClose, maxW = 600, maxH =
     setRawSrc(out.toDataURL("image/png"));
   };
 
-  const closeModal = () => { stopCamera(); onClose(); };
+  const revokeBlobUrl = () => {
+    if (blobUrlRef.current) { URL.revokeObjectURL(blobUrlRef.current); blobUrlRef.current = null; }
+  };
+  const closeModal = () => { stopCamera(); revokeBlobUrl(); onClose(); };
 
   const cropHasArea = crop && crop.w > 4 && crop.h > 4;
 
@@ -298,19 +309,31 @@ export default function ImageInsertModal({ onInsert, onClose, maxW = 600, maxH =
 
           {/* ── Upload drop-zone ── */}
           {!rawSrc && tab === "upload" && (
-            <label className="flex flex-col items-center justify-center border-2 border-dashed border-emerald-300 rounded-xl w-full h-52 cursor-pointer hover:bg-emerald-50 transition-all group select-none">
+            <div
+              className="flex flex-col items-center justify-center border-2 border-dashed border-emerald-300 rounded-xl w-full h-52 cursor-pointer hover:bg-emerald-50 transition-all group select-none"
+              onClick={() => fileInputRef.current?.click()}
+            >
               <span className="text-5xl mb-2 group-hover:scale-110 transition-transform">🖼️</span>
               <span className="text-sm font-semibold text-gray-600">Click to choose an image</span>
               <span className="text-xs text-gray-400 mt-1">PNG · JPG · WEBP · GIF</span>
-              <input type="file" accept="image/*" className="hidden"
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
                 onChange={e => {
                   const file = e.target.files[0];
                   if (!file) return;
-                  const reader = new FileReader();
-                  reader.onload = ev => setRawSrc(ev.target.result);
-                  reader.readAsDataURL(file);
-                }} />
-            </label>
+                  if (blobUrlRef.current) {
+                    URL.revokeObjectURL(blobUrlRef.current);
+                    blobUrlRef.current = null;
+                  }
+                  const objectUrl = URL.createObjectURL(file);
+                  blobUrlRef.current = objectUrl;
+                  setRawSrc(objectUrl);
+                }}
+              />
+            </div>
           )}
 
           {/* ── Camera view ── */}
@@ -387,7 +410,7 @@ export default function ImageInsertModal({ onInsert, onClose, maxW = 600, maxH =
                   className="px-5 py-2 bg-gray-700 text-white rounded-xl text-sm font-semibold hover:bg-gray-800 transition shadow">
                   Insert Full Image
                 </button>
-                <button type="button" onClick={() => { setRawSrc(null); setCrop(null); setImageReady(false); imgEl.current = null; }}
+                <button type="button" onClick={() => { revokeBlobUrl(); setRawSrc(null); setCrop(null); setImageReady(false); imgEl.current = null; }}
                   className="px-5 py-2 bg-gray-100 text-gray-600 rounded-xl text-sm font-semibold hover:bg-gray-200 transition">
                   ← Change
                 </button>
