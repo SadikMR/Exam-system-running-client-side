@@ -1140,55 +1140,100 @@ const LiveExamsPage = () => {
 
           {/* Action Buttons */}
           <div className="mt-auto space-y-2">
-            {examStatus.status === "upcoming" ? (
+
+            {/* ── UPCOMING ─────────────────────────────────────────── */}
+            {examStatus.status === "upcoming" && (
               <>
-                {/* Countdown/Reminder Button */}
+                {/* Countdown / reminder strip */}
                 {examStatus.isMoreThanOneHour ? (
-                  <button
-                    onClick={handleSetReminder}
-                    className={`w-full font-semibold py-3 px-4 rounded-xl transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] ${
-                      hasReminder
-                        ? "bg-amber-500 text-white hover:bg-amber-600"
-                        : `bg-gradient-to-r ${examStatus.buttonColor} text-white`
-                    }`}
-                  >
-                    {hasReminder ? "🔕 Remove Reminder" : "🔔 Set Reminder"}
-                  </button>
+                  !exam.isDemo && (
+                    <button
+                      onClick={handleReminderClick}
+                      className={`w-full font-semibold py-3 px-4 rounded-xl transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] ${
+                        hasReminder
+                          ? "bg-amber-500 text-white hover:bg-amber-600"
+                          : `bg-gradient-to-r ${examStatus.buttonColor} text-white`
+                      }`}
+                    >
+                      {hasReminder ? "🔕 Remove Reminder" : "🔔 Set Reminder"}
+                    </button>
+                  )
                 ) : (
                   <div className={`w-full bg-gradient-to-r ${examStatus.buttonColor} text-white font-semibold py-3 px-4 rounded-xl text-center`}>
-                    ⏳ Starts in {formatCountdown(
-                      examStatus.hours,
-                      examStatus.minutes,
-                      examStatus.seconds
-                    )}
+                    ⏳ Starts in {formatCountdown(examStatus.hours, examStatus.minutes, examStatus.seconds)}
                   </div>
                 )}
-                
-                {/* Registration Button - Only show for upcoming exams if not registered */}
-                {isAuthenticated && !exam.isRegistered && (
+
+                {/* Registration row — for non-demo exams only */}
+                {!exam.isDemo && (
+                  <>
+                    {/* Not logged in */}
+                    {!isAuthenticated && (
+                      <button
+                        onClick={() => navigate("/login")}
+                        className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]"
+                      >
+                        🔑 Login to Register
+                      </button>
+                    )}
+
+                    {/* Logged in but not registered */}
+                    {isAuthenticated && !exam.isRegistered && (
+                      <button
+                        onClick={handleOpenRegistration}
+                        className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]"
+                      >
+                        📝 Register for Exam
+                      </button>
+                    )}
+
+                    {/* Already registered */}
+                    {isAuthenticated && exam.isRegistered && (
+                      <div className="w-full bg-green-100 border border-green-300 text-green-800 font-semibold py-2 px-4 rounded-xl text-center text-sm">
+                        ✅ Registered
+                      </div>
+                    )}
+                  </>
+                )}
+              </>
+            )}
+
+            {/* ── RUNNING ──────────────────────────────────────────── */}
+            {examStatus.status === "running" && (
+              <>
+                {/* Not logged in */}
+                {!isAuthenticated ? (
                   <button
-                    onClick={handleOpenRegistration}
-                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]"
+                    onClick={() => navigate("/login")}
+                    className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]"
                   >
-                    📝 Register for Exam
+                    🔑 Login to Enter
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleEnterExam}
+                    className={`w-full bg-gradient-to-r ${examStatus.buttonColor} text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]`}
+                  >
+                    🚀 Enter Exam
                   </button>
                 )}
-                
-                {/* Registered Badge */}
-                {isAuthenticated && exam.isRegistered && (
-                  <div className="w-full bg-green-100 text-green-800 font-semibold py-2 px-4 rounded-xl text-center text-sm">
-                    ✓ Registered
+
+                {/* Not registered hint for non-demo running exams */}
+                {!exam.isDemo && isAuthenticated && !exam.isRegistered && (
+                  <p className="text-xs text-center text-amber-700 bg-amber-50 border border-amber-200 rounded-lg py-1.5 px-3">
+                    ⚠️ Not registered — you will be prompted on entry
+                  </p>
+                )}
+                {!exam.isDemo && isAuthenticated && exam.isRegistered && (
+                  <div className="w-full bg-green-100 border border-green-300 text-green-800 font-semibold py-1.5 px-4 rounded-xl text-center text-xs">
+                    ✅ Registered
                   </div>
                 )}
               </>
-            ) : examStatus.status === "running" ? (
-              <button
-                onClick={handleEnterExam}
-                className={`w-full bg-gradient-to-r ${examStatus.buttonColor} text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]`}
-              >
-                🚀 Enter Exam
-              </button>
-            ) : (
+            )}
+
+            {/* ── ENDED ────────────────────────────────────────────── */}
+            {examStatus.status === "ended" && (
               <button
                 disabled
                 className="w-full bg-gradient-to-r from-gray-400 to-gray-500 text-white font-semibold py-3 px-4 rounded-xl opacity-50 cursor-not-allowed"
@@ -1196,11 +1241,13 @@ const LiveExamsPage = () => {
                 ⏰ Exam Ended
               </button>
             )}
+
           </div>
         </div>
       </div>
     );
   };
+
 
   if (loading) {
     return (
