@@ -864,6 +864,10 @@ const LiveExamsPage = () => {
                 confirmButtonText: "Go to Profile",
                 showCancelButton: true,
                 cancelButtonText: "Cancel",
+              }).then((result) => {
+                if (result.isConfirmed) {
+                  navigate("/profile");
+                }
               });
               return;
             }
