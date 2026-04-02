@@ -1059,23 +1059,21 @@ const LiveExamRoom = () => {
 
           {/* Webcam Monitoring Panel */}
           {examStarted && !examCompleted && (
-            <div className="fixed bottom-4 right-4 z-30">
-              <WebcamMonitoringPanel
-                videoRef={videoRef}
-                canvasRef={canvasRef}
-                cameraActive={cameraActive}
-                startCamera={startCamera}
-                stopCamera={stopCamera}
-                faceDetected={faceDetected}
-                headPosition={headPosition}
-                detectionErrors={detectionErrors}
-                violationStatus={violationStatus}
-                violationLogs={violationLogs}
-                cameraError={cameraError}
-                modelsLoaded={modelsLoaded}
-                commonViolationCount={commonViolationCount}
-              />
-            </div>
+            <WebcamMonitoringPanel
+              videoRef={videoRef}
+              canvasRef={canvasRef}
+              cameraActive={cameraActive}
+              startCamera={startCamera}
+              stopCamera={stopCamera}
+              faceDetected={faceDetected}
+              headPosition={headPosition}
+              detectionErrors={detectionErrors}
+              violationStatus={violationStatus}
+              violationLogs={violationLogs}
+              cameraError={cameraError}
+              modelsLoaded={modelsLoaded}
+              commonViolationCount={commonViolationCount}
+            />
           )}
         </div>
 
