@@ -22,7 +22,6 @@ const Registration = () => {
 
   const [imagePreview, setImagePreview] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -32,7 +31,6 @@ const Registration = () => {
 
   const handleChange = (e) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-    setError("");
   };
 
   const handleImageChange = (e) => {
@@ -45,10 +43,33 @@ const Registration = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
-    if (formData.password !== formData.confirmPassword) {
-      Swal.fire({ icon: "error", title: "Oops...", text: "Passwords do not match." }); return;
+
+    // Client-side validation via Swal
+    if (!formData.username.trim() || !formData.name.trim() || !formData.email.trim() || !formData.phone.trim()) {
+      Swal.fire({ icon: "warning", title: "Missing Information", text: "Please fill in all required fields before submitting." });
+      return;
     }
+    if (formData.password.length < 6) {
+      Swal.fire({ icon: "warning", title: "Password Too Short", text: "Your password must be at least 6 characters long." });
+      return;
+    }
+    if (formData.password !== formData.confirmPassword) {
+      Swal.fire({ icon: "error", title: "Passwords Don't Match", text: "The passwords you entered don't match. Please make sure both fields are the same." });
+      return;
+    }
+
+    // Map backend error messages to friendly UI text
+    const getFriendlyError = (msg) => {
+      if (msg.includes("already registered") || msg.includes("already exists") || msg.includes("duplicate"))
+        return { title: "Account Already Exists", text: "An account with that email or username already exists. Try logging in instead." };
+      if (msg.includes("Missing required"))
+        return { title: "Missing Information", text: "Please fill in all required fields." };
+      if (msg.includes("Server error"))
+        return { title: "Server Error", text: "Something went wrong on our end. Please try again in a moment." };
+      if (msg.includes("email") && msg.includes("valid"))
+        return { title: "Invalid Email", text: "Please enter a valid email address." };
+      return { title: "Registration Failed", text: "We couldn't create your account. Please check your details and try again." };
+    };
 
     setLoading(true);
     try {
@@ -66,10 +87,11 @@ const Registration = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Registration failed");
 
-      Swal.fire({ icon: "success", title: "Success!", text: "Registration completed. Please check your email to verify your account.", timer: 2500, showConfirmButton: false });
-      setTimeout(() => { navigate("/verify-code", { state: { email: data.email, type: "email" } }); }, 2500);
+      Swal.fire({ icon: "success", title: "Account Created! 🎉", text: "Please check your email inbox for a verification code to activate your account.", timer: 3000, showConfirmButton: false });
+      setTimeout(() => { navigate("/verify-code", { state: { email: data.email, type: "email" } }); }, 3000);
     } catch (err) {
-      setError(err.message);
+      const friendly = getFriendlyError(err.message || "");
+      Swal.fire({ icon: "error", title: friendly.title, text: friendly.text });
     }
     setLoading(false);
   };
@@ -155,12 +177,6 @@ const Registration = () => {
               </div>
             </div>
 
-            {/* Error */}
-            {error && (
-              <div className="bg-destructive/10 border-l-4 border-destructive text-destructive px-4 py-3 rounded text-sm">
-                {error}
-              </div>
-            )}
 
             <button type="submit" disabled={loading} className="w-full bg-accent text-accent-foreground py-3.5 rounded-2xl font-semibold hover:bg-accent/90 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-md hover:shadow-lg">
               {loading ? "Creating Account..." : "Complete Registration"}

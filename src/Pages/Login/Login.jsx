@@ -57,41 +57,52 @@ const Login = () => {
       Swal.fire({ icon: "success", title: "Welcome Back!", text: `Hello, ${username}`, timer: 2000, showConfirmButton: false });
       setTimeout(() => { navigate(redirectPath, { replace: true }); }, 2000);
     } catch (err) {
-      let errorMessage = err.message || "Server error, please try again later.";
-      let requiresVerification = false;
-      let userEmail = "";
+      const raw = err.message || "";
 
-      try {
-        if (err.message) {
-          const match = err.message.match(/Please verify your email/);
-          if (match) { requiresVerification = true; userEmail = formData.emailOrUsername; }
-        }
-      } catch (parseErr) {}
+      // Map backend messages to friendly UI text (no private info exposed)
+      const getFriendlyError = (msg) => {
+        if (msg.includes("Please verify your email")) return null; // handled separately
+        if (msg.includes("Invalid credentials") || msg.includes("password"))
+          return { title: "Incorrect Credentials", text: "The email/username or password you entered is incorrect. Please try again." };
+        if (msg.includes("Missing credentials") || msg.includes("Missing required"))
+          return { title: "Missing Information", text: "Please fill in both your email/username and password." };
+        if (msg.includes("User not found"))
+          return { title: "Account Not Found", text: "No account found with that email or username. Please check your details or register." };
+        if (msg.includes("Server error"))
+          return { title: "Server Error", text: "Something went wrong on our end. Please try again in a moment." };
+        return { title: "Login Failed", text: "Unable to log in. Please check your details and try again." };
+      };
 
-      if (requiresVerification) {
+      if (raw.includes("Please verify your email")) {
         const result = await Swal.fire({
-          icon: "warning", title: "Email Not Verified",
-          text: "Please verify your email before logging in.",
-          showCancelButton: true, confirmButtonText: "Resend Code", cancelButtonText: "OK",
+          icon: "warning",
+          title: "Email Not Verified",
+          text: "You need to verify your email address before you can log in.",
+          showCancelButton: true,
+          confirmButtonText: "Resend Verification Code",
+          cancelButtonText: "Cancel",
           confirmButtonColor: "#10B981",
         });
         if (result.isConfirmed) {
           try {
             const resendRes = await fetch(`${BACKEND_URL}/user/resend-verification-code`, {
               method: "POST", headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ email: userEmail }),
+              body: JSON.stringify({ email: formData.emailOrUsername }),
             });
             const resendData = await resendRes.json();
             if (resendRes.ok) {
-              Swal.fire({ icon: "success", title: "Code Sent!", text: "Verification code sent to your email.", timer: 2000, showConfirmButton: false });
-              setTimeout(() => { navigate("/verify-code", { state: { email: userEmail, type: "email" } }); }, 2000);
-            } else { throw new Error(resendData.message || "Failed to resend code"); }
-          } catch (resendErr) {
-            Swal.fire({ icon: "error", title: "Error", text: resendErr.message || "Failed to resend code. Please try again." });
+              Swal.fire({ icon: "success", title: "Code Sent!", text: "A verification code has been sent to your email.", timer: 2000, showConfirmButton: false });
+              setTimeout(() => { navigate("/verify-code", { state: { email: formData.emailOrUsername, type: "email" } }); }, 2000);
+            } else {
+              Swal.fire({ icon: "error", title: "Could Not Send Code", text: "We couldn't send the verification code. Please try again later." });
+            }
+          } catch {
+            Swal.fire({ icon: "error", title: "Could Not Send Code", text: "We couldn't send the verification code. Please try again later." });
           }
         }
       } else {
-        Swal.fire({ icon: "error", title: "Login Failed", text: errorMessage });
+        const friendly = getFriendlyError(raw);
+        Swal.fire({ icon: "error", title: friendly.title, text: friendly.text });
       }
     }
     setLoading(false);
