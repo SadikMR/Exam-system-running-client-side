@@ -279,7 +279,6 @@ const QuestionEntryStep = ({ examData, setExamData }) => {
 
   const handleFinishExam = async () => {
     try {
-      console.log("Saving complete exam to API:", examData);
       alert(
         "🎉 Exam saved successfully!\n\nAll questions have been submitted to the system."
       );

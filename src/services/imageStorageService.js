@@ -62,11 +62,6 @@ export const submitVerificationImages = async (images) => {
       );
     }
 
-    console.log(
-      "Submitting verification images to:",
-      `${API_BASE_URL}/profile/verify`
-    );
-
     // Submit to backend
     const response = await fetch(`${API_BASE_URL}/profile/verify`, {
       method: "POST",
@@ -132,12 +127,9 @@ export const submitVerificationImagesWithRetry = async (
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      console.log(`Verification submission attempt ${attempt}/${maxRetries}`);
-
       const result = await submitVerificationImages(images);
 
       if (result.success && result.verified) {
-        console.log("Verification successful:", result);
         return result;
       }
 
@@ -158,7 +150,6 @@ export const submitVerificationImagesWithRetry = async (
 
       // Wait before retry with exponential backoff (1s, 2s, 4s)
       const delay = Math.pow(2, attempt - 1) * 1000;
-      console.log(`Waiting ${delay}ms before retry...`);
       await new Promise((resolve) => setTimeout(resolve, delay));
     } catch (error) {
       lastError = {

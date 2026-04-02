@@ -93,17 +93,12 @@ const useWebcamMonitoring = (
 
   // Stop camera
   const stopCamera = useCallback(() => {
-    console.log("📹 Stopping camera...");
     if (videoRef.current?.srcObject) {
       const tracks = videoRef.current.srcObject.getTracks();
-      tracks.forEach((track) => {
-        track.stop();
-        console.log(`🛑 Stopped track: ${track.kind}`);
-      });
+      tracks.forEach((track) => track.stop());
       videoRef.current.srcObject = null;
     }
     setCameraActive(false);
-    console.log("✅ Camera stopped successfully");
   }, []);
 
   // Detect head position based on facial landmarks
@@ -169,36 +164,16 @@ const useWebcamMonitoring = (
     verificationImageUrl
   ) => {
     if (!verificationImageUrl) {
-      console.warn(
-        "❌ compareFaceWithVerification: No verification image URL provided"
-      );
       return true; // If no verification image, allow (for backward compatibility)
     }
 
-    console.log("🔍 Starting face comparison...");
-    console.log("📷 Verification image URL:", verificationImageUrl);
-
     try {
       const currentDescriptor = detections[0].descriptor;
-      if (!currentDescriptor) {
-        console.warn("❌ Could not get descriptor from current detection");
-        return false;
-      }
+      if (!currentDescriptor) return false;
 
-      console.log(
-        "✅ Current face descriptor extracted. Length:",
-        currentDescriptor.length
-      );
-      console.log(
-        "📊 Descriptor sample (first 5 values):",
-        currentDescriptor.slice(0, 5)
-      );
-
-      // Load verification image from Cloudinary URL
+      // Load verification image
       const img = new Image();
       img.crossOrigin = "anonymous";
-
-      console.log("⏳ Loading verification image from URL...");
 
       await new Promise((resolve, reject) => {
         const timeout = setTimeout(() => {
@@ -206,19 +181,8 @@ const useWebcamMonitoring = (
           reject(new Error("Image load timeout"));
         }, 10000);
 
-        img.onload = () => {
-          clearTimeout(timeout);
-          console.log("✅ Verification image loaded successfully");
-          resolve();
-        };
-        img.onerror = () => {
-          clearTimeout(timeout);
-          console.warn(
-            "❌ Failed to load verification image from Cloudinary URL:",
-            verificationImageUrl
-          );
-          reject(new Error("Image load failed"));
-        };
+        img.onload = () => { clearTimeout(timeout); resolve(); };
+        img.onerror = () => { clearTimeout(timeout); reject(new Error("Image load failed")); };
         img.src = verificationImageUrl;
       });
 
@@ -227,25 +191,12 @@ const useWebcamMonitoring = (
         .withFaceLandmarks()
         .withFaceDescriptors();
 
-      console.log(
-        "📊 Verification image detection completed. Faces found:",
-        verificationDetections.length
-      );
-
       if (verificationDetections.length === 0) {
         console.error("❌ No face detected in verification image");
         return false;
       }
 
       const verificationDescriptor = verificationDetections[0].descriptor;
-      console.log(
-        "✅ Verification face descriptor extracted. Length:",
-        verificationDescriptor.length
-      );
-      console.log(
-        "📊 Verification descriptor sample (first 5 values):",
-        verificationDescriptor.slice(0, 5)
-      );
 
       // Calculate Euclidean distance between face descriptors
       let sumSquaredDiff = 0;
@@ -254,23 +205,8 @@ const useWebcamMonitoring = (
         sumSquaredDiff += diff * diff;
       }
       const distance = Math.sqrt(sumSquaredDiff);
-
-      // Match threshold (lower = stricter)
-      // 0.65 = very lenient (accepts family members)
-      // 0.5 = strict (only exact match)
-      // 0.45 = very strict (perfect match only)
       const MATCH_THRESHOLD = 0.5;
-      const isMatch = distance < MATCH_THRESHOLD;
-
-      console.log(
-        `🔍 Face match distance: ${distance.toFixed(
-          3
-        )} (threshold: ${MATCH_THRESHOLD}) - ${
-          isMatch ? "✅ MATCH - ALLOWED" : "❌ MISMATCH - REJECTED"
-        }`
-      );
-
-      return isMatch;
+      return distance < MATCH_THRESHOLD;
     } catch (error) {
       console.error("Error comparing faces:", error);
       return false;
@@ -365,22 +301,10 @@ const useWebcamMonitoring = (
           !verificationImages ||
           Object.keys(verificationImages).length === 0
         ) {
-          console.warn("❌ No verification images available for comparison");
-          console.log("verificationImages prop:", verificationImages);
           setDetectionErrors([]);
           updateViolationStatus(null);
           return;
         }
-
-        // Log when we have verification images
-        console.log(
-          "✅ Verification images available:",
-          Object.keys(verificationImages).filter((k) => verificationImages[k])
-        );
-        console.log(
-          "Current face descriptor available:",
-          !!detections[0].descriptor
-        );
 
         // Get the appropriate verification image based on head position
         // For left/right, we still compare with front image for face matching
@@ -549,9 +473,7 @@ const useWebcamMonitoring = (
 
         logViolation(violationType, elapsed);
 
-        // 🚨 CALL CALLBACK: Notify parent component that violation reached 10 seconds
         if (onWebcamViolationReached) {
-          console.log(`🎥 Webcam violation reached 10s: ${violationType}`);
           onWebcamViolationReached(violationType);
         }
 

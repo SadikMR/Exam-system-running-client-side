@@ -151,7 +151,6 @@ const HscSubjectWiseQuiz = ({ subject, totalQuestions }) => {
         "http://localhost:5000/hsc-questions/save-hsc-subjectWise-history",
         dataToSend
       );
-      console.log("Result saved successfully!", dataToSend);
     } catch (error) {
       console.error("Error saving result:", error);
     }

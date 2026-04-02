@@ -230,9 +230,6 @@ const ReviewSubmitStep = ({ examData, setExamData, setCurrentStep }) => {
         throw new Error("Unsupported exam mode");
       }
 
-      console.log("📡 Submitting to:", apiUrl);
-      console.log("🧾 Payload preview:", payload);
-
       const response = await fetch(apiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -240,12 +237,6 @@ const ReviewSubmitStep = ({ examData, setExamData, setCurrentStep }) => {
       });
 
       const result = await response.json().catch(() => ({}));
-      console.log(
-        "Response status:",
-        response.status,
-        "Response body:",
-        result
-      );
 
       if (!response.ok) {
         throw new Error(
@@ -298,18 +289,6 @@ const ReviewSubmitStep = ({ examData, setExamData, setCurrentStep }) => {
     }
   };
 
-  // ---------- Dev / debug effect: only show HSC group when it's a previous HSC exam ----------
-  useEffect(() => {
-    if (
-      examData.examMode === "previous" &&
-      examData.examType === "HSC" &&
-      examData.hscGroup
-    ) {
-      console.log("📘 HSC Group:", examData.hscGroup);
-      // show only once (or whenever these fields change):
-      // alert(`HSC Group: ${examData.hscGroup}`);
-    }
-  }, [examData.examMode, examData.examType, examData.hscGroup]);
 
   const getOrdinalSuffix = (value) => {
     const n = parseInt(value, 10);

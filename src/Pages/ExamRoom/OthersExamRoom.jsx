@@ -333,7 +333,6 @@ const OthersExamRoom = () => {
   const handleSubmitClick = () => setShowSubmitConfirm(true);
 
   const handleSubmitConfirm = async () => {
-    console.log("exam data: ", examData);
     setShowSubmitConfirm(false);
     setExamCompleted(true);
 
@@ -443,9 +442,6 @@ const OthersExamRoom = () => {
       },
     };
 
-    console.log("📤 Practice submission:", submissionData);
-    console.log("📋 examSnapshot details:", examSnapshot);
-
     try {
       const response = await fetch(
         `${import.meta.env.VITE_BACKEND_URL}/practice-exam/submit`,
@@ -458,7 +454,6 @@ const OthersExamRoom = () => {
 
       if (response.ok) {
         const result = await response.json();
-        console.log("✅ Practice exam submitted:", result);
         clearExamStorage();
       } else {
         const error = await response.json();

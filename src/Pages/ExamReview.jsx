@@ -47,7 +47,6 @@ const ExamReview = () => {
     if (percentage >= 40) return "Below Average";
     return "Poor";
   };
-  console.log("Submission Data:", submissionData);
 
   // Loading state
   if (!examData || !submissionData) {

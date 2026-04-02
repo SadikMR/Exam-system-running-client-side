@@ -14,7 +14,6 @@ const Quiz = () => {
   const [currentPage, setCurrentPage] = useState(0);
 
   const questionsPerPage = 10;
-  console.log("locAL: ", localStorage.getItem("selectedOptions"));
 
   useEffect(() => {
     const fetchQuestions = async () => {
@@ -23,7 +22,6 @@ const Quiz = () => {
         const response = await axios.get(
           "http://localhost:5000/hsc-questions/getOthersQuestions"
         );
-        console.log(response.data);
         if (
           Array.isArray(response.data.data) &&
           response.data.data.length > 0
@@ -133,7 +131,6 @@ const Quiz = () => {
         "http://localhost:5000/hsc-questions/save-result-history",
         dataToSend
       );
-      console.log("Result saved successfully!", dataToSend);
     } catch (error) {
       console.error("Error saving result:", error);
     }

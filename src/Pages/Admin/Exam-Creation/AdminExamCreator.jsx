@@ -194,7 +194,6 @@ const writeToLocalStorage = (key, value) => {
 
 // Validation function
 const isStepValid = (step, examData) => {
-  console.log("Validating step:", step, "Data:", examData);
 
   switch (step) {
     case 0: // Exam Mode Selection
@@ -227,13 +226,6 @@ const isStepValid = (step, examData) => {
             s.questionCount > 0 &&
             Number.isInteger(s.questionCount)
         );
-
-      console.log("Step 2 validation:", {
-        hasSubjects,
-        allHaveValidCounts,
-        subjects: examData.subjects,
-        result: hasSubjects && allHaveValidCounts,
-      });
 
       return hasSubjects && allHaveValidCounts;
 
@@ -328,7 +320,6 @@ const AdminExamCreator = () => {
         ? examData.examType.toLowerCase()
         : "";
       const apiUrl = `${BACKEND_URL}/${routePrefix}-questions/check-duplicate`;
-      console.log("api: ", apiUrl);
 
       const params = (() => {
         if (examData.examType === "BCS") {
@@ -416,7 +407,6 @@ const AdminExamCreator = () => {
 
   const handleSubmit = async () => {
     try {
-      console.log("Admin created exam:", examData);
 
       // Here you would typically send the data to your API
       // const response = await fetch('/api/exams', {

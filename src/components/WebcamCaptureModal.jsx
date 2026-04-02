@@ -105,7 +105,6 @@ const WebcamCaptureModal = ({ isOpen, onClose, onComplete }) => {
 
         faceApiLoadedRef.current = true;
         setModelsLoaded(true);
-        console.log("✅ Face-api models loaded successfully");
       } catch (error) {
         console.error("❌ Error loading face-api:", error);
         setCameraError("Failed to load face detection. Please refresh the page.");
@@ -140,10 +139,8 @@ const WebcamCaptureModal = ({ isOpen, onClose, onComplete }) => {
   // Start auto-capture sequence (only after models are loaded)
   useEffect(() => {
     if (cameraAccessGranted && modelsLoaded && !isAutoCapturing) {
-      console.log("🚀 Starting auto-capture sequence...");
       // Small delay to ensure everything is ready
       const timer = setTimeout(() => {
-        console.log("✅ Conditions met, starting capture...");
         startAutoCapture();
       }, 1000); // Increased delay to ensure video is fully ready
       return () => clearTimeout(timer);
@@ -194,7 +191,6 @@ const WebcamCaptureModal = ({ isOpen, onClose, onComplete }) => {
       // Wait for face to be in correct position (with fallback)
       try {
         await waitForCorrectPosition(angles[i].key);
-        console.log(`✓ Position correct for ${angles[i].label}`);
       } catch (error) {
         console.warn(`Position timeout for ${angles[i].label}, capturing anyway...`);
         // Continue anyway - capture even if position isn't perfect
@@ -215,11 +211,9 @@ const WebcamCaptureModal = ({ isOpen, onClose, onComplete }) => {
           canvasRef.current // Canvas must also exist
         ) {
           videoReady = true;
-          console.log(`✓ Video ready: ${videoRef.current.videoWidth}x${videoRef.current.videoHeight}`);
         } else {
           videoReadyAttempts++;
           if (videoReadyAttempts % 10 === 0) {
-            console.log(`Waiting for video/canvas to be ready... (${videoReadyAttempts}/${maxVideoReadyAttempts})`);
           }
           await new Promise((resolve) => setTimeout(resolve, 100));
         }
@@ -241,9 +235,7 @@ const WebcamCaptureModal = ({ isOpen, onClose, onComplete }) => {
 
       // Capture image
       try {
-        console.log(`Capturing ${angles[i].label}...`);
         await captureWithFaceDetection(angles[i].key);
-        console.log(`✓ Captured ${angles[i].label} successfully`);
         Swal.fire({
           icon: "success",
           title: "Captured!",
@@ -259,7 +251,6 @@ const WebcamCaptureModal = ({ isOpen, onClose, onComplete }) => {
           // Wait a bit more for canvas to be ready
           await new Promise((resolve) => setTimeout(resolve, 300));
           await captureImage(angles[i].key);
-          console.log(`✓ Captured ${angles[i].label} (fallback method)`);
           Swal.fire({
             icon: "success",
             title: "Captured!",

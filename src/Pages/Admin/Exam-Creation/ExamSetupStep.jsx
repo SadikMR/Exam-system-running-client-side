@@ -19,7 +19,6 @@ const ExamSetupStep = ({ examData, setExamData }) => {
   const batches = Array.from({ length: 50 }, (_, i) => 50 - i);
 
   const handleChange = (type, value) => {
-    console.log(`${type} changed:`, value);
     setExamData({ type, payload: value });
   };
   const getLocalDateTime = () => {

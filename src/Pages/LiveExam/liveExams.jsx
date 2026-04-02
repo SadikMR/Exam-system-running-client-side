@@ -426,7 +426,6 @@ const LiveExamsPage = () => {
         }
         const data = await response.json();
         if (data.success) {
-          console.log(data);
           // Filter only BCS, HSC, Bank exams
           const filteredData = data.data.exams.filter((exam) =>
             ["BCS", "HSC", "Bank"].includes(exam.examType)

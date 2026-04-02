@@ -22,7 +22,6 @@ const Quiz = () => {
         const response = await axios.get(
           "http://localhost:5000/bcs-questions/getOthersQuestions"
         );
-        console.log(response.data);
         if (
           Array.isArray(response.data.data) &&
           response.data.data.length > 0
@@ -130,7 +129,6 @@ const Quiz = () => {
         "http://localhost:5000/bcs-questions/save-result",
         dataToSend
       );
-      console.log("Result saved successfully!", dataToSend);
     } catch (error) {
       console.error("Error saving result:", error);
     }

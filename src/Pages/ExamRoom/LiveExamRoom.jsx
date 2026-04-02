@@ -58,7 +58,6 @@ const LiveExamRoom = () => {
 
       // For demo exams, check verification but skip registration
       if (passedExamData.isDemo) {
-        console.log("✅ Demo exam detected - checking verification...");
         
         const token = localStorage.getItem("userToken");
         if (!token) {
@@ -258,7 +257,6 @@ const LiveExamRoom = () => {
 
   // Callback for webcam violation reaching 10 seconds - increment common violation counter
   const handleWebcamViolationReached = useCallback((violationType) => {
-    console.log(`🎥 Webcam violation reached 10s: ${violationType} - Incrementing common violation counter`);
     setCommonViolationCount((prev) => prev + 1);
   }, []);
 
@@ -308,7 +306,6 @@ const LiveExamRoom = () => {
     if (currentTotal > prevTotal) {
       // Web focus violation occurred - increment common counter
       const increment = currentTotal - prevTotal;
-      console.log(`🌐 Web focus violation detected - Incrementing common violation counter by ${increment}`);
       setCommonViolationCount((prev) => prev + increment);
       prevViolationCountsTotalRef.current = currentTotal;
     }
@@ -332,10 +329,7 @@ const LiveExamRoom = () => {
       commonViolationCount >= 5 &&
       examData
     ) {
-      console.log(
-        `🚫 User banned: Common violation count reached ${commonViolationCount} (limit: 5)`
-      );
-      
+
       // Show warning before auto-submitting
       Swal.fire({
         icon: "error",
@@ -387,21 +381,9 @@ const LiveExamRoom = () => {
         if (response.ok) {
           const data = await response.json();
           if (data.success && data.data?.verificationImages) {
-            console.log(
-              "✅ Verification images fetched successfully:",
-              Object.keys(data.data.verificationImages).filter(
-                (k) => data.data.verificationImages[k]
-              )
-            );
-            console.log(
-              "📊 Verification images data:",
-              data.data.verificationImages
-            );
             setVerificationImages(data.data.verificationImages);
             setWebcamMonitoringEnabled(true);
           } else {
-            console.warn("❌ No verification images found for user");
-            console.log("Response data:", data);
             setWebcamMonitoringEnabled(false);
           }
         } else {
@@ -422,16 +404,13 @@ const LiveExamRoom = () => {
     }
   }, [examStarted, examCompleted]);
 
-  // Debug: Log verification images when they change
+  // Update webcam monitoring with verification images when they become available
   useEffect(() => {
     if (verificationImages) {
-      console.log("📸 verificationImages state updated:", verificationImages);
       const availableAngles = Object.keys(verificationImages).filter(
         (k) => verificationImages[k]
       );
-      console.log("📸 Available verification angles:", availableAngles);
-    } else {
-      console.log("📸 verificationImages is null or undefined");
+      if (availableAngles.length === 0) setWebcamMonitoringEnabled(false);
     }
   }, [verificationImages]);
 
@@ -489,7 +468,6 @@ const LiveExamRoom = () => {
         );
 
         if (response.ok) {
-          console.log("Webcam violations logged successfully");
           clearViolationLogs();
         } else {
           console.error("Failed to log webcam violations");
@@ -766,14 +744,7 @@ const LiveExamRoom = () => {
       },
     };
 
-    // ✅ Log what we're sending
-    console.log(
-      "📤 Sending submission data:",
-      JSON.stringify(submissionData, null, 2)
-    );
-
-    // Stop webcam BEFORE setting exam as completed to ensure it stops properly
-    console.log("📹 Stopping webcam before exam completion...");
+    // Stop webcam before exam completion
     stopCamera();
     
     setExamCompleted(true);
@@ -791,12 +762,9 @@ const LiveExamRoom = () => {
 
       if (response.ok) {
         const result = await response.json();
-        console.log("✅ Success:", result);
         clearExamStorage();
         await exitFullscreen();
-        setTimeout(() => {
-          navigate("/");
-        }, 2000);
+        setTimeout(() => { navigate("/"); }, 2000);
       } else {
         const error = await response.json();
         console.error("❌ Backend error:", error);

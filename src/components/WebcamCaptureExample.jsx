@@ -34,7 +34,6 @@ const WebcamCaptureExample = ({ onSuccess }) => {
 
     // Get image statistics
     const stats = getImageStatistics(images);
-    console.log("Captured images statistics:", stats);
 
     // Show success message
     Swal.fire({
