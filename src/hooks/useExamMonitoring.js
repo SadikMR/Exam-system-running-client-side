@@ -168,6 +168,7 @@ const useExamMonitoring = (
     isExpelled,
     violationCounts,
     handleReturnToExam,
+    incrementViolation,
   };
 };
 

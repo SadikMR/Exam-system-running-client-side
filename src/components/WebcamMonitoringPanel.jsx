@@ -46,9 +46,7 @@ const WebcamMonitoringPanel = ({
     return labels[type] || type?.replace(/_/g, " ");
   };
 
-  const isWarning = (type) => {
-    return type === "head_position_warning";
-  };
+  const isWarning = () => false; // All violations now show countdown timer
 
   const timeRemainingToCount =
     violationStatus.duration > 0
@@ -164,48 +162,36 @@ const WebcamMonitoringPanel = ({
               </div>
             </div>
 
-            {/* Countdown Timer - Only for actual violations, not warnings */}
-            {!isWarning(violationStatus.type) && (
-              <div className="mb-4 p-4 bg-gradient-to-r from-yellow-50 to-red-50 rounded-lg border border-yellow-300">
-                {hasViolationCounted ? (
-                  <div className="text-center">
-                    <p className="text-3xl font-bold text-red-600 mb-2">10s</p>
-                    <p className="text-lg font-semibold text-red-700">
-                      ✓ Violation Counted!
-                    </p>
-                    <p className="text-sm text-red-600 mt-1">
-                      This violation has been recorded.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="text-center">
-                    <p className="text-sm text-gray-600 mb-1">
-                      Violation will be recorded in:
-                    </p>
-                    <p className="text-4xl font-bold text-red-600 mb-2">
-                      {timeRemainingToCount}s
-                    </p>
-                    <p className="text-sm text-gray-700">
-                      Return to normal position to avoid violation
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Warning Message - For head position warnings */}
-            {isWarning(violationStatus.type) && (
-              <div className="mb-4 p-4 bg-yellow-50 rounded-lg border border-yellow-300">
+            {/* Countdown Timer - Shown for all violation types */}
+            <div className="mb-4 p-4 bg-gradient-to-r from-yellow-50 to-red-50 rounded-lg border border-yellow-300">
+              {hasViolationCounted ? (
                 <div className="text-center">
-                  <p className="text-lg font-semibold text-yellow-700 mb-2">
-                    ⚠️ Warning
+                  <p className="text-3xl font-bold text-red-600 mb-2">10s</p>
+                  <p className="text-lg font-semibold text-red-700">
+                    ✓ Violation Counted!
                   </p>
-                  <p className="text-sm text-yellow-800">
-                    Please face the camera directly. Turn your head to the front position.
+                  <p className="text-sm text-red-600 mt-1">
+                    This violation has been recorded.
                   </p>
                 </div>
-              </div>
-            )}
+              ) : (
+                <div className="text-center">
+                  <p className="text-sm text-gray-600 mb-1">
+                    {violationStatus.type === "head_position_warning"
+                      ? "Violation will be recorded if you don't correct in:"
+                      : "Violation will be recorded in:"}
+                  </p>
+                  <p className="text-4xl font-bold text-red-600 mb-2">
+                    {timeRemainingToCount}s
+                  </p>
+                  <p className="text-sm text-gray-700">
+                    {violationStatus.type === "head_position_warning"
+                      ? "Please face the camera directly"
+                      : "Return to normal position to avoid violation"}
+                  </p>
+                </div>
+              )}
+            </div>
 
             {/* Violation Count */}
             <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">

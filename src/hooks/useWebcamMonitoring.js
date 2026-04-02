@@ -357,6 +357,7 @@ const useWebcamMonitoring = (
             return newErrors.slice(-3); // Keep only last 3 errors
           });
           updateViolationStatus("head_position_warning");
+          return; // Don't clear violation below
         }
 
         // If verification images are not available, skip comparison
@@ -366,13 +367,6 @@ const useWebcamMonitoring = (
         ) {
           console.warn("❌ No verification images available for comparison");
           console.log("verificationImages prop:", verificationImages);
-          // If head is left/right, still show warning
-          if (
-            detectedHeadPosition === "left" ||
-            detectedHeadPosition === "right"
-          ) {
-            return; // Already handled above
-          }
           setDetectionErrors([]);
           updateViolationStatus(null);
           return;
@@ -495,22 +489,6 @@ const useWebcamMonitoring = (
   const startViolationTimer = (violationType) => {
     if (violationTimersRef.current[violationType]) {
       clearInterval(violationTimersRef.current[violationType]);
-    }
-
-    // Head position warning is just a warning, not a violation - don't start timer
-    if (violationType === "head_position_warning") {
-      setViolationStatus((prev) => {
-        if (prev.type === violationType) {
-          return {
-            ...prev,
-            duration: 0,
-            isViolating: false,
-            hasReachedThreshold: false,
-          };
-        }
-        return prev;
-      });
-      return;
     }
 
     let elapsed = 0;

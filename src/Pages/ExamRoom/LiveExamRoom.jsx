@@ -244,6 +244,7 @@ const LiveExamRoom = () => {
     isExpelled,
     violationCounts,
     handleReturnToExam,
+    incrementViolation,
   } = useExamMonitoring(
     examStarted,
     examCompleted,
@@ -1082,6 +1083,11 @@ const LiveExamRoom = () => {
           <ViolationWarning
             violationType={violationType}
             onReturn={handleReturnToExam}
+            onViolationCounted={() => {
+              // Increment both the type-specific and common counters on each restart cycle
+              incrementViolation("tabSwitching");
+              setCommonViolationCount((prev) => prev + 1);
+            }}
           />
         )}
 
