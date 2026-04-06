@@ -49,6 +49,18 @@ const Registration = () => {
       Swal.fire({ icon: "warning", title: "Missing Information", text: "Please fill in all required fields before submitting." });
       return;
     }
+
+    // Phone validation: must be exactly 11 digits starting with 01 (e.g. 01XXXXXXXXX)
+    const phoneRegex = /^01\d{9}$/;
+    if (!phoneRegex.test(formData.phone.trim())) {
+      Swal.fire({
+        icon: "warning",
+        title: "Invalid Phone Number",
+        text: "Please enter a valid Bangladeshi phone number (e.g. 01XXXXXXXXX — 11 digits starting with 01).",
+      });
+      return;
+    }
+
     if (formData.password.length < 6) {
       Swal.fire({ icon: "warning", title: "Password Too Short", text: "Your password must be at least 6 characters long." });
       return;
@@ -68,6 +80,8 @@ const Registration = () => {
         return { title: "Server Error", text: "Something went wrong on our end. Please try again in a moment." };
       if (msg.includes("email") && msg.includes("valid"))
         return { title: "Invalid Email", text: "Please enter a valid email address." };
+      if (msg.includes("phone") || msg.includes("01"))
+        return { title: "Invalid Phone Number", text: "Please enter a valid Bangladeshi phone number (e.g. 01XXXXXXXXX — 11 digits starting with 01)." };
       return { title: "Registration Failed", text: "We couldn't create your account. Please check your details and try again." };
     };
 
@@ -129,7 +143,8 @@ const Registration = () => {
             {/* Phone */}
             <div>
               <label className="block text-sm font-semibold text-muted-foreground mb-2">Phone Number</label>
-              <input type="tel" name="phone" value={formData.phone} onChange={handleChange} required className={inputClass} placeholder="Enter your phone number" />
+              <input type="tel" name="phone" value={formData.phone} onChange={handleChange} required className={inputClass} placeholder="e.g. 01XXXXXXXXX" maxLength={11} />
+              <p className="mt-1 text-xs text-muted-foreground">Must be 11 digits starting with 01 (e.g. 01712345678)</p>
             </div>
 
             {/* Address */}
